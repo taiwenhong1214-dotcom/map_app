@@ -25,7 +25,7 @@ export default async function handler(req, res) {
           { role: 'user', content: userMessage }
         ],
         // ⚠️ 核心修复 2：为了防止内容太长被截断，稍微给大点 Token
-        max_tokens: 3000, 
+        max_tokens: 4000, 
         response_format: { type: 'json_object' }
       })
     });
@@ -42,8 +42,15 @@ export default async function handler(req, res) {
     // 获取 AI 返回的文本
     const content = data.choices[0].message.content;
     
-    // 解析 JSON 返回给 Flutter
-    res.status(200).json(JSON.parse(content));
+    // 核心修复：清理可能存在的 Markdown 代码块标记，确保 JSON 解析成功
+    const cleanContent = content.replace(/```json|```/g, '').trim();
+    
+    try {
+      res.status(200).json(JSON.parse(cleanContent));
+    } catch (parseError) {
+      console.error('JSON 解析失败，原始内容:', cleanContent);
+      res.status(500).json({ error: 'JSON Parse Error', details: parseError.toString(), raw: cleanContent });
+    }
 
   } catch (error) {
     console.error('Vercel 内部发生致命错误:', error);

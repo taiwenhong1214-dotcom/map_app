@@ -21,10 +21,10 @@ class TravelMapFactory {
     final isInChina = gcj.latitude != destination.latitude || 
                       gcj.longitude != destination.longitude;
 
-    // 理想状态下：境内用 amap，境外用 google
-    // 但由于目前移除了 amap 依赖，我们暂时全局返回 google
-    // (等未来接回稳定版高德 SDK 时，把这里改回 isInChina ? MapEngineType.amap : MapEngineType.google 即可)
-    return MapEngineType.google; 
+    // 理想状态下：境内用 amap，境外用 google。
+    // 目前为了测试和兼容性，我们优先使用 OSM (OpenStreetMap)
+    // 如果需要切换回 Google，可以将此处逻辑改为对应的 EngineType
+    return MapEngineType.mapbox; // 借用 mapbox 枚举位或直接逻辑分发至 OSM
   }
 
   /// 构建地图 Widget
@@ -56,8 +56,18 @@ class TravelMapFactory {
         );
 
       case MapEngineType.google:
-      case MapEngineType.mapbox:
         return GoogleMapWidget(
+          key: key,
+          initialCenter: initialCenter,
+          initialZoom: initialZoom,
+          markers: markers,
+          polylines: polylines,
+          onMapCreated: onMapCreated,
+        );
+
+      case MapEngineType.mapbox:
+        // 将 Mapbox 路由到 OSM 实现
+        return OsmMapWidget(
           key: key,
           initialCenter: initialCenter,
           initialZoom: initialZoom,
