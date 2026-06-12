@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../widgets/ai_copilot_chat_sheet.dart';
 import '../../../core/coordinate/coordinate_converter.dart';
 import '../../../core/map_adapter/i_travel_map.dart';
 import '../../../core/map_adapter/map_factory.dart';
@@ -15,7 +15,7 @@ class PlannerPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // 监听 AI 生成的行程状态
-    final itineraryState = ref.watch(currentItineraryProvider);
+    final itineraryState = ref.watch(currentItineraryNotifierProvider);
 
     return Scaffold(
       body: Stack(
@@ -84,9 +84,12 @@ class PlannerPage extends ConsumerWidget {
       floatingActionButton: itineraryState.value != null
           ? AiCopilotFab(
               onTap: () {
-                // TODO: 弹出对话 BottomSheet 进行行程优化
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('AI 伴游对话框即将上线！')),
+                // 弹出聊天对话框
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true, // 允许弹窗被键盘顶起
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const AiCopilotChatSheet(),
                 );
               },
             )
@@ -132,6 +135,7 @@ class PlannerPage extends ConsumerWidget {
 
     // 严守双引擎策略约束，只能通过 Factory 构建
     return TravelMapFactory.build(
+      key: ValueKey(itinerary?.id ?? 'default_map'), 
       initialCenter: center,
       destinationForEngineDecision: center, // 用于判断国内还是海外
       initialZoom: 12.0,

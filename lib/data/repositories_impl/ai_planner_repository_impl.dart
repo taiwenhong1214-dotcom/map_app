@@ -45,9 +45,48 @@ JSON 格式要求：
     required Itinerary currentItinerary,
     required String userPrompt,
   }) async {
-    // 逻辑类似，将 currentItinerary 序列化为 JSON 喂给 AI，并附带 userPrompt
-    // ...
-    throw UnimplementedError();
+    // 1. 将当前行程提取成简化的文本告诉大模型，作为上下文
+    final currentContext = currentItinerary.days.map((day) {
+      final pois = day.pois.map((p) => '${p.name}(${p.category ?? '未分类'})').join(', ');
+      return '第${day.dayIndex}天: $pois';
+    }).join('\n');
+
+    // 2. 构造专属的系统提示词
+    const systemPrompt = '''
+你是一个高级旅行AI助手。用户会提供【当前行程】和【修改意见】。
+请你根据意见修改行程，并直接输出完整的最新标准的JSON对象，不要有任何Markdown包裹。
+JSON 格式严格要求与之前保持一致：
+{
+  "title": "行程标题",
+  "destination": "目的地",
+  "days": [
+    {
+      "dayIndex": 1,
+      "date": "2026-06-12",
+      "pois": [
+        {"id": "p1", "name": "景点名称", "lat": 39.9, "lng": 116.4, "description": "描述", "category": "attraction"}
+      ]
+    }
+  ]
+}
+''';
+
+    // 3. 构造用户消息（包含上下文 + 新指令）
+    final prompt = """
+【当前行程】:
+$currentContext
+
+【用户的修改指令】:
+$userPrompt
+
+请输出修改后的完整行程 JSON。
+""";
+
+    // 4. 发送给 Vercel 接口
+    final jsonResult = await _dataSource.fetchAiCompletion(systemPrompt, prompt);
+    
+    // 5. 解析并返回新行程
+    return _parseItineraryFromJson(jsonResult);
   }
 
   // 内部 DTO 转 Entity 工具

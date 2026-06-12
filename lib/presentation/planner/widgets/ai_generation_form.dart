@@ -25,7 +25,7 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
   void _submit() {
     FocusScope.of(context).unfocus(); // 收起键盘
     final days = int.tryParse(_daysController.text) ?? 3;
-    ref.read(currentItineraryProvider.notifier).generate(
+    ref.read(currentItineraryNotifierProvider.notifier).generate(
           _destController.text,
           days,
           _prefController.text,

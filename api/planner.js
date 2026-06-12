@@ -1,6 +1,7 @@
-// 文件路径：api/planner.js
+// ⚠️ 核心修复 1：把 Vercel 的默认 10 秒超时延长到 60 秒（免费版支持的最大值）
+export const maxDuration = 60; 
+
 export default async function handler(req, res) {
-  // 只允许 POST 请求
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -8,37 +9,45 @@ export default async function handler(req, res) {
   try {
     const { systemPrompt, userMessage } = req.body;
 
-    // 组装发给 OpenRouter 的请求
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        // 自动读取你在 Vercel Dashboard 中配置的环境变量
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://tai-map-app.vercel.app/',
         'X-Title': 'Circular Travel',
       },
       body: JSON.stringify({
-        // 你可以在 Vercel Env 里加一个 AI_MODEL，或者这里写死
+        // 建议在这里固定使用 haiku，生成 JSON 最快且便宜
         model: process.env.AI_MODEL || 'openai/gpt-oss-120b:free', 
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
+        // ⚠️ 核心修复 2：为了防止内容太长被截断，稍微给大点 Token
+        max_tokens: 3000, 
         response_format: { type: 'json_object' }
       })
     });
 
+    // ⚠️ 核心修复 3：如果 OpenRouter 扣费失败或者 Key 错误，直接返回真实错误
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenRouter 拒绝了请求:', errorData);
+      return res.status(response.status).json({ error: 'OpenRouter API Error', details: errorData });
+    }
+
     const data = await response.json();
     
-    // 提取大模型返回的文本 (JSON 字符串)
+    // 获取 AI 返回的文本
     const content = data.choices[0].message.content;
     
-    // 将字符串解析为 JSON 对象并返回给 Flutter
+    // 解析 JSON 返回给 Flutter
     res.status(200).json(JSON.parse(content));
 
   } catch (error) {
-    console.error('API 代理错误:', error);
-    res.status(500).json({ error: 'Failed to fetch AI data' });
+    console.error('Vercel 内部发生致命错误:', error);
+    // 把真实的错误堆栈字符串发给前端，方便查 Bug
+    res.status(500).json({ error: 'Failed to fetch AI data', details: error.toString() });
   }
 }

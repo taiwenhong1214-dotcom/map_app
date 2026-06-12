@@ -9,7 +9,7 @@ class AiCopilotFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: onTap,
-      backgroundColor: const Color(0xFF4A90E2), // 年轻顺滑的品牌蓝
+      backgroundColor: const Color(0xFF4A90E2),
       icon: const Icon(Icons.auto_awesome, color: Colors.white),
       label: const Text(
         'AI 伴游',

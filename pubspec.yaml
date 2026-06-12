@@ -30,17 +30,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  amap_flutter_map: ^3.0.0
-  amap_flutter_base: ^3.0.0
-  google_maps_flutter: ^2.17.1
-  dio: ^5.9.2
+  # 确保这里绝对没有 amap_xxx 的任何字眼！
+  google_maps_flutter: ^2.5.3  # 保留 Google Map
+  dio: ^5.4.0
   flutter_riverpod: ^3.3.1
   riverpod_annotation: ^4.0.2
-  amap_map: ^1.0.15
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
