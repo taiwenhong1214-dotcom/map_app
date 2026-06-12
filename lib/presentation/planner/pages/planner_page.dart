@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 import '../../../core/coordinate/coordinate_converter.dart';
 import '../../../core/map_adapter/i_travel_map.dart';
@@ -11,10 +12,12 @@ import '../../../domain/entities/itinerary.dart';
 import '../providers/planner_providers.dart';
 import '../widgets/ai_copilot_fab.dart';
 import '../widgets/ai_generation_form.dart';
+import '../widgets/map_search_bar.dart';
 import '../widgets/ai_copilot_chat_sheet.dart';
 import '../../lbs_tracking/lbs_providers.dart';
 import '../../social_feed/widgets/publish_post_sheet.dart';
 import '../../social_feed/widgets/itinerary_poster_generator.dart';
+import '../widgets/photo_picker_sheet.dart';
 import '../../../data/repositories_impl/memory_repository_impl.dart';
 import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/app_strings.dart';
@@ -170,21 +173,27 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
             ),
           ),
 
+          // 新增：顶部悬浮搜索栏
+          if (itineraryState.value == null) // 只在未生成行程（首页模式）时显示
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 70, // 避开左侧的 Home 按钮或返回按钮
+              right: 70, // 避开右侧的语言切换和重新定位按钮
+              child: MapSearchBar(
+                onLocationFound: (latlng) {
+                  _mapController?.moveCamera(latlng, zoom: 12.0);
+                },
+              ),
+            ),
+
           // 4. 交互层：UI 面板
           SafeArea(
             child: itineraryState.when(
               data: (itinerary) {
                 if (itinerary == null) {
-                  return SizedBox.expand(
-                    child: Align(
-                      alignment: const Alignment(0, 0.2), // 视觉重心偏下
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: const AiGenerationForm(),
-                        ),
-                      ),
-                    ),
+                  return Align(
+                    alignment: Alignment.bottomCenter,
+                    child: AiGenerationForm(),
                   );
                 }
                 return _buildItineraryPanel(context, itinerary, routeData, strings);
@@ -215,12 +224,16 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                         ),
                         // Lottie 动画与轮播文案
                         Center(
-                          child: Lottie.network(
-                            'https://raw.githubusercontent.com/xvrh/lottie-flutter/master/example/assets/LottieLogo1.json',
-                            height: 80,
-                            errorBuilder: (context, error, stackTrace) => const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(color: Colors.black87),
+                          child: ClipRect(
+                            child: Lottie.network(
+                              'https://assets2.lottiefiles.com/packages/lf20_yyjaunca.json', // 替换为更稳定的横向加载动画
+                              height: 60,
+                              width: double.infinity,
+                              fit: BoxFit.fitHeight,
+                              errorBuilder: (context, error, stackTrace) => const Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: LinearProgressIndicator(color: Colors.blueAccent),
+                              ),
                             ),
                           ),
                         ),
@@ -331,9 +344,28 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
             builder: (ctx) => GestureDetector(
               onTap: () => Navigator.pop(ctx),
               child: Center(
-                child: Hero(
-                  tag: 'memory_${f.poi.id}',
-                  child: Image.memory(f.thumbnailData, fit: BoxFit.contain),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Hero(
+                      tag: 'memory_${f.poi.id}',
+                      child: Image.memory(f.thumbnailData, fit: BoxFit.contain),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        ref.read(photoFootprintsProvider.notifier).removeFootprint(f.poi.id);
+                        Navigator.pop(ctx);
+                        HapticFeedback.mediumImpact();
+                      },
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('移除照片'),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -457,7 +489,8 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 startGlobalIndex += itinerary.days[i].pois.length;
               }
 
-              return _buildDayCard(day, startGlobalIndex, routeData, strings);
+              final footprints = ref.watch(photoFootprintsProvider);
+              return _buildDayCard(day, startGlobalIndex, routeData, footprints, strings);
             },
           ),
         );
@@ -466,7 +499,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
   }
 
   /// 每天的行程卡片
-  Widget _buildDayCard(ItineraryDay day, int startGlobalIndex, Map<String, dynamic>? routeData, AppStrings strings) {
+  Widget _buildDayCard(ItineraryDay day, int startGlobalIndex, Map<String, dynamic>? routeData, List<PhotoFootprint> footprints, AppStrings strings) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -536,12 +569,58 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+
                             Text(poi.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             if (poi.description != null)
                               Padding(
-                                padding: const EdgeInsets.only(top: 4, bottom: 12),
+                                padding: const EdgeInsets.only(top: 4, bottom: 8),
                                 child: Text(poi.description!, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 13)),
                               ),
+                            // 手动照片管理
+                            Builder(
+                              builder: (context) {
+                                final footprint = footprints.where((f) => f.poi.id == poi.id).firstOrNull;
+                                if (footprint != null) {
+                                  return Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Image.memory(footprint.thumbnailData, width: 24, height: 24, fit: BoxFit.cover),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text('已添加足迹', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  );
+                                } else {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      HapticFeedback.lightImpact();
+                                      final usedIds = footprints.map((f) => f.asset.id).toList();
+                                      final asset = await showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (ctx) => PhotoPickerSheet(alreadyUsedAssetIds: usedIds),
+                                      );
+                                      if (asset != null) {
+                                        final repo = ref.read(memoryRepositoryProvider);
+                                        final fp = await repo.createFootprintForPoi(poi, asset);
+                                        if (fp != null) {
+                                          ref.read(photoFootprintsProvider.notifier).addFootprint(fp);
+                                          HapticFeedback.mediumImpact();
+                                        }
+                                      }
+                                    },
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.add_a_photo, size: 14, color: Colors.blueAccent),
+                                        SizedBox(width: 4),
+                                        Text('添加照片', style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           ],
                         ),
                       ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/memories_provider.dart';
+import '../../planner/providers/planner_providers.dart';
+import '../../../core/i18n/app_strings.dart';
+import '../../../core/i18n/locale_provider.dart';
 import 'memory_detail_page.dart';
 
 class MemoriesPage extends ConsumerWidget {
@@ -9,6 +12,8 @@ class MemoriesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final albums = ref.watch(memoriesProvider);
+    final locale = ref.watch(localeProvider);
+    final strings = context.strings(locale);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -17,9 +22,9 @@ class MemoriesPage extends ConsumerWidget {
         physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar.large(
-            title: const Text(
-              '旅迹相册',
-              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            title: Text(
+              strings.navMemories,
+              style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
             surfaceTintColor: Colors.transparent,
@@ -35,12 +40,12 @@ class MemoriesPage extends ConsumerWidget {
                     Icon(Icons.photo_library_outlined, size: 80, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
                     Text(
-                      '空空如也',
+                      strings.emptyMemories,
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '快去开启一段新的旅程吧！',
+                      strings.startNewJourney,
                       style: TextStyle(color: Colors.grey.shade500),
                     ),
                   ],
@@ -140,7 +145,7 @@ class MemoriesPage extends ConsumerWidget {
                                           Icon(Icons.photo_library, size: 14, color: isDark ? Colors.white70 : Colors.black54),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '${album.photos.length} 照片',
+                                            strings.photosCount(album.photos.length),
                                             style: TextStyle(
                                               color: isDark ? Colors.white70 : Colors.black54,
                                               fontSize: 13,

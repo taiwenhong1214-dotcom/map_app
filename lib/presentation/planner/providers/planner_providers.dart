@@ -56,6 +56,17 @@ class PhotoFootprintsNotifier extends Notifier<List<PhotoFootprint>> {
   void setFootprints(List<PhotoFootprint> newFootprints) {
     state = newFootprints;
   }
+
+  void addFootprint(PhotoFootprint newFootprint) {
+    // 移除同一 POI 的旧照片，加入新照片
+    final List<PhotoFootprint> filtered = state.where((f) => f.poi.id != newFootprint.poi.id).toList();
+    filtered.add(newFootprint);
+    state = filtered;
+  }
+
+  void removeFootprint(String poiId) {
+    state = state.where((f) => f.poi.id != poiId).toList();
+  }
 }
 
 // 手写定义 Provider

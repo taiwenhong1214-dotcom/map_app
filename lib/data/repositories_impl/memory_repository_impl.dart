@@ -57,28 +57,13 @@ class MemoryRepositoryImpl {
       POI? matchedPoi;
 
       if (latlng != null && latlng.latitude != 0 && latlng.longitude != 0) {
-        // EXIF 匹配引擎：寻找距离最近且 < 2公里的 POI
+        // EXIF 匹配引擎：寻找距离最近且 < 0.5公里的 POI
         double minDistance = double.infinity;
         for (var t in timeline) {
           final dist = _calculateDistance(latlng.latitude, latlng.longitude, t.poi.location.latitude, t.poi.location.longitude);
-          if (dist < minDistance && dist < 2.0) {
+          if (dist < minDistance && dist < 0.5) {
             minDistance = dist;
             matchedPoi = t.poi;
-          }
-        }
-      } else {
-        // 时间戳双引擎匹配：如果没有 GPS，根据拍摄时间推测
-        final createDt = photo.createDateTime;
-        for (var t in timeline) {
-          // 只比对小时和分钟，忽略具体的日期差异（因为测试时照片往往不是当天的）
-          // 但如果要严格匹配，应该是包含日期的。这里放宽条件：只看时分段。
-          final photoHour = createDt.hour + createDt.minute / 60.0;
-          final startHour = t.startTime.hour + t.startTime.minute / 60.0;
-          final endHour = t.endTime.hour + t.endTime.minute / 60.0;
-
-          if (photoHour >= startHour && photoHour <= endHour) {
-            matchedPoi = t.poi;
-            break;
           }
         }
       }
@@ -102,6 +87,19 @@ class MemoryRepositoryImpl {
     }
 
     return footprints;
+  }
+
+  Future<PhotoFootprint?> createFootprintForPoi(POI poi, AssetEntity asset) async {
+    final thumbnailData = await asset.thumbnailDataWithSize(const ThumbnailSize(200, 200));
+    if (thumbnailData == null) return null;
+
+    final rotation = (Random().nextDouble() - 0.5) * 16 * (pi / 180);
+    return PhotoFootprint(
+      poi: poi,
+      asset: asset,
+      thumbnailData: thumbnailData,
+      randomRotation: rotation,
+    );
   }
 
   // Haversine 公式计算两点距离(公里)

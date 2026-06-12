@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../domain/entities/memory.dart';
 import '../../../core/map_adapter/map_factory.dart';
 import '../../../core/map_adapter/i_travel_map.dart';
+import '../../planner/providers/planner_providers.dart';
+import '../../../core/i18n/app_strings.dart';
+import '../../../core/i18n/locale_provider.dart';
 
-class MemoryDetailPage extends StatefulWidget {
+class MemoryDetailPage extends ConsumerStatefulWidget {
   final MemoryAlbum album;
 
   const MemoryDetailPage({super.key, required this.album});
 
   @override
-  State<MemoryDetailPage> createState() => _MemoryDetailPageState();
+  ConsumerState<MemoryDetailPage> createState() => _MemoryDetailPageState();
 }
 
-class _MemoryDetailPageState extends State<MemoryDetailPage> {
+class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
   ITravelMapController? _mapController;
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+    final strings = context.strings(locale);
+
     final markers = widget.album.photos.map((photo) {
       return TravelMapMarker(
         id: photo.id,
@@ -25,7 +32,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
           _mapController?.moveCamera(photo.location, zoom: 16.0);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(photo.description ?? '在地图上查看了照片!'),
+              content: Text(photo.description ?? strings.viewedOnMap),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -123,7 +130,7 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
                           Icon(Icons.location_on, size: 16, color: isDark ? Colors.white54 : Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
-                            '${widget.album.photos.length} 个足迹点',
+                            strings.footprintsCount(widget.album.photos.length),
                             style: TextStyle(
                               fontSize: 15,
                               color: isDark ? Colors.white54 : Colors.grey.shade600,

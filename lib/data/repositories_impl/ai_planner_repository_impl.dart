@@ -157,8 +157,8 @@ $userPrompt
     });
 
     return Itinerary(
-      id: 'mock_\${DateTime.now().millisecondsSinceEpoch}',
-      title: '[\$destination] \${days}天探索之旅 (本地兜底)',
+      id: 'mock_${DateTime.now().millisecondsSinceEpoch}',
+      title: '[$destination] ${days}天探索之旅 (本地兜底)',
       destination: destination,
       days: mockDays,
     );

@@ -27,11 +27,37 @@ class AppStrings {
   String get prefsLabel => isEn ? 'Preferences (e.g. foodie, culture)' : '偏好 (如：咖啡馆、美术馆、不要爬山)';
   String get generateBtn => isEn ? 'Plan My Trip' : '生成魔法行程';
 
+  // Map Search
+  String get searchPlaceholder => isEn ? 'Search any place to jump...' : '搜索任意地点以点亮足迹...';
+  String get searchNotFound => isEn ? 'Location not found, please try another keyword' : '未找到该地点，请尝试换个关键词';
+
   // Traffic
   String get trafficLoading => isEn ? '⏳ Calculating route...' : '⏳ 智能交通计算中...';
   String get trafficLocal => isEn ? '📍 Local fallback route' : '📍 本地测算完成';
-  String trafficInfo(int durationMin, String distanceKm) => 
-      isEn ? '🚗 Drive $durationMin min ($distanceKm km)' : '🚗 驾车 $durationMin 分钟 ($distanceKm km)';
+  String trafficInfo(int durationMin, String distanceKm) {
+    if (isEn) {
+      return '🚗 Drive $durationMin min ($distanceKm km)';
+    } else {
+      return '🚗 驾车 $durationMin 分钟 ($distanceKm km)';
+    }
+  }
+
+  // --- Nav & Other Pages ---
+  String get navPlanner => isEn ? 'AI Planner' : 'AI 规划';
+  String get navDiscovery => isEn ? 'Discovery' : '社区发现';
+  String get navMemories => isEn ? 'Memories' : '旅迹相册';
+  
+  String get discoveryTitle => isEn ? 'Discovery' : '发现';
+  String get copyToPlanner => isEn ? 'Copy' : '一键复刻';
+  String get itineraryCopied => isEn ? 'Itinerary copied! Go to AI Planner to view.' : '行程已复制！请前往"AI规划"查看。';
+  String copiesCount(int count) => isEn ? '$count Copies' : '$count 人复刻';
+  String get daysItinerary => isEn ? 'Days Itinerary' : '天行程';
+
+  String get emptyMemories => isEn ? 'Empty' : '空空如也';
+  String get startNewJourney => isEn ? 'Start a new journey now!' : '快去开启一段新的旅程吧！';
+  String photosCount(int count) => isEn ? '$count Photos' : '$count 照片';
+  String footprintsCount(int count) => isEn ? '$count Footprints' : '$count 个足迹点';
+  String get viewedOnMap => isEn ? 'Viewed photo on map!' : '在地图上查看了照片!';
 
   // Default Form Inputs
   String get defaultDest => isEn ? 'Tokyo' : '东京';

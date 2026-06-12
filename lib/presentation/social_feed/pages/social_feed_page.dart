@@ -4,6 +4,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../providers/social_feed_provider.dart';
 import '../../../domain/entities/social_post.dart';
 import '../../planner/providers/planner_providers.dart';
+import '../../../core/i18n/app_strings.dart';
+import '../../../core/i18n/locale_provider.dart';
 
 class SocialFeedPage extends ConsumerWidget {
   const SocialFeedPage({super.key});
@@ -11,13 +13,15 @@ class SocialFeedPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final posts = ref.watch(socialFeedProvider);
+    final locale = ref.watch(localeProvider);
+    final strings = context.strings(locale);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('发现', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        title: Text(strings.discoveryTitle, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         centerTitle: true,
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -29,13 +33,13 @@ class SocialFeedPage extends ConsumerWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = posts[index];
-          return _buildPostCard(context, ref, post, isDark);
+          return _buildPostCard(context, ref, post, isDark, strings);
         },
       ),
     );
   }
 
-  Widget _buildPostCard(BuildContext context, WidgetRef ref, SocialPost post, bool isDark) {
+  Widget _buildPostCard(BuildContext context, WidgetRef ref, SocialPost post, bool isDark, AppStrings strings) {
     return Container(
       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       padding: const EdgeInsets.all(16),
@@ -116,7 +120,7 @@ class SocialFeedPage extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${post.itinerary.destination} · ${post.itinerary.days.length} 天行程',
+                    '${post.itinerary.destination} · ${post.itinerary.days.length} ${strings.daysItinerary}',
                     style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -126,11 +130,11 @@ class SocialFeedPage extends ConsumerWidget {
                     ref.read(socialFeedProvider.notifier).incrementCopy(post.id);
                     ref.read(currentItineraryNotifierProvider.notifier).setItinerary(post.itinerary);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('行程已复制！请前往"AI规划"查看。')),
+                      SnackBar(content: Text(strings.itineraryCopied)),
                     );
                   },
                   icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('一键复刻'),
+                  label: Text(strings.copyToPlanner),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
@@ -157,12 +161,12 @@ class SocialFeedPage extends ConsumerWidget {
               _buildActionButton(
                 icon: Icons.share_outlined,
                 color: isDark ? Colors.white54 : Colors.grey.shade600,
-                label: '分享',
+                label: strings.share,
                 onTap: () {},
               ),
               const Spacer(),
               Text(
-                '${post.copyCount} 人复刻',
+                strings.copiesCount(post.copyCount),
                 style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 13),
               ),
             ],
