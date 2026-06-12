@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'presentation/planner/pages/planner_page.dart';
+import 'presentation/main_layout.dart';
 
 void main() {
   // 确保 Flutter 绑定初始化（用于后续地图、后台定位等插件）
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
           },
         ),
       ),
-      home: const PlannerPage(), // 直接将首页指向规划器
+      home: const MainLayout(), // 引入带底部导航的主布局
     );
   }
 }

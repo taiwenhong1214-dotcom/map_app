@@ -85,6 +85,11 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
     state = const AsyncValue.data(null);
   }
 
+  /// 🌟 新增：直接设置行程（用于从社区一键复刻）
+  void setItinerary(Itinerary itinerary) {
+    state = AsyncValue.data(itinerary);
+  }
+
   /// 对话式微调当前行程 (Copilot)
   Future<void> modifyItinerary(String userPrompt) async {
     final currentItinerary = state.value;

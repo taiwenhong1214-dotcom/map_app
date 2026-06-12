@@ -1,90 +1,47 @@
-# 圆周旅迹 (Circular Travel) - 项目上下文与开发指南
+# 🌟 Circular Travel (圆周旅迹) - Flutter 核心工程蓝图与开发需求库
 
-## 一、 项目愿景与技术栈
-- **产品定位**：一款融合 AI 智能排程、LBS 实时防走散、地理相册与社交 Feed 的年轻化旅行 App。
-- **目标平台**：Flutter (iOS + Android 双端)。
-- **网络层架构**：Dio + Vercel Serverless (作为 OpenRouter/AI 代理层，绕过直连限制)。
-- **架构模式**：严格的 Clean Architecture (Domain / Data / Presentation)。
-
-### ⚠️ 状态管理严格约束 (必须遵守)
-- **核心框架**：Riverpod。
-- **语法规范**：统一采用**原生手写 Riverpod 语法**（如 `AsyncNotifier`、`Notifier`、`Provider`、`StateNotifier`）。
-- **禁止事项**：**绝对不要使用 `@riverpod` 注解**，严禁引入 `build_runner` 代码生成，以防止编译报错并保持编译纯净度。
+> **System Prompt (给 AI 的指令):**
+> 你是一个世界顶级的 Flutter 架构师与全栈开发专家。请仔细阅读以下项目的核心架构、已完成进度以及待开发的需求池（Backlog）。在理解所有上下文和“架构铁律”后，请回复：“我已就绪！请指示我们要先从哪一个 Phase 的哪个功能开始开发？”
 
 ---
 
-## 二、 核心架构约束 (⚠️ 开发红线)
+## 🏗️ 一、 项目技术栈与架构铁律 (⚠️ 绝对不可违背)
 
-### 1. 地图多引擎动态适配 (Map Adapter Pattern)
-- **UI 隔离**：绝对禁止在 UI 业务代码中直接 `import` 具体的地图 SDK 或底层地图包。
-- **调度机制**：所有地图渲染必须统一通过 `ITravelMap` 接口和 `TravelMapFactory.build()` 工厂方法动态调度。
-- **引擎分流**：
-  - **国内逻辑**：使用 `ChinaMapWidget`（底层为 `flutter_map` 加载高德免费瓦片，配合代码强转 GCJ-02 火星坐标系防止偏移）。
-  - **海外逻辑**：使用 `OsmMapWidget`（加载 CartoDB 极速底图，直接使用 WGS-84 坐标）。
-
-### 2. 坐标系隔离机制
-- **标准数据流**：本地数据库、Domain 层实体、业务逻辑层（Providers/UseCases）统一强制使用 **WGS-84 (LatLng84)** 坐标系。
-- **转换边界**：WGS-84 到 GCJ-02 的纠偏转换**仅允许在 MapAdapter 内部（如 ChinaMapWidget 渲染前）发生**，禁止污染业务层。
-
----
-
-## 三、 当前已完成进度 (MVP 状态)
-
-### Module 1: AI Planner & Copilot (已闭环)
-- **一键生成**：用户输入目的地和天数，通过 Vercel 代理请求大模型，生成标准的行程 JSON（包含每天的 POI 列表与经纬度）。
-- **对话微调**：底部悬浮“AI伴游”气泡，支持通过自然语言局部修改现有行程状态，UI 实时刷新。
-- **快捷操作**：左上角支持“清空返回首页”，右上角支持“带参一键重新生成(刷新)”。
-
-### Module 2: LBS & 智能路线 (已闭环)
-- **GPS定位**：集成 `geolocator` 申请双端定位权限，地图渲染实时闪烁的“蓝色定位点”，支持一键平滑飞回“我的位置”或“行程目的地”。
-- **OSRM 真实道路**：提取行程中 POI 之间的轨迹，在地图绘制真实贴地公路，并在列表中渲染如“🚗 驾车 15 分钟 (3.2km)”。
-- **极限防崩溃兜底**：网络请求严格限时 2 秒，一旦超时或算路失败（如跨海），瞬间切换为本地 `Haversine` 物理公式测算距离时间，并用虚线连结地图，保证 UI 绝对不卡死。
+1. **状态管理基建：原生 Riverpod**
+   - **铁律**：本项目**严禁**使用 `@riverpod` 注解和 `build_runner` 代码生成工具。所有状态管理必须手写原生的 `Provider`、`FutureProvider`、`AsyncNotifierProvider`，以保证跨平台的极致稳定。
+2. **地图双引擎解耦 (Map Adapter Pattern)**
+   - **铁律**：业务 UI 层绝不允许直接 import 具体的地图 SDK。所有地图渲染必须经过 `ITravelMap` 接口与 `TravelMapFactory.build()`。
+   - 目前已实现：`ChinaMapWidget` (加载高德底图+GCJ02偏移算法) 和 `OsmMapWidget` (加载 CartoDB 极速底图+WGS84坐标)。工厂会根据目的地的经纬度自动切换引擎。
+3. **坐标系隔离 (WGS-84 唯一原则)**
+   - **铁律**：Domain 实体、业务数据流、大模型交互、定位插件获取的 GPS，**永远且只能**使用 WGS-84 标准 (`LatLng84`)。任何向火星坐标系 (GCJ-02) 的转换，只能在底层的 Adapter 内部悄悄进行。
+4. **网络与接口防护**
+   - **铁律**：采用 Dio，所有请求大模型（OpenRouter）的流量必须走 Vercel Serverless 代理，防止直连墙/跨国超时。接口层配有严格的 `Future.timeout` 强制物理熔断机制。
 
 ---
 
-## 四、 项目核心目录结构
+## 🗺️ 二、 当前已闭环进度 (MVP 已完成)
 
-```text
-lib/
-├── core/
-│   ├── coordinate/
-│   │   └── coordinate_converter.dart     # WGS84 <-> GCJ02 转换算法
-│   └── map_adapter/
-│       ├── i_travel_map.dart             # 地图抽象接口
-│       ├── map_factory.dart              # 智能调度工厂 (根据坐标判断境内外)
-│       ├── china_map_widget.dart         # 国内引擎 (高德底图 + GCJ02偏移)
-│       └── osm_map_widget.dart           # 海外引擎 (CartoDB底图 + WGS84)
-├── domain/
-│   ├── entities/
-│   │   └── itinerary.dart                # POI, Itinerary, ItineraryDay 实体类
-│   └── repositories/
-│       └── i_ai_planner_repository.dart 
-├── data/
-│   ├── datasources/
-│   │   └── ai_remote_datasource.dart     # 请求 Vercel 接口获取 AI 响应
-│   └── repositories_impl/
-│       └── ai_planner_repository_impl.dart # 组装 Prompt、解析 AI 吐出的 JSON
-└── presentation/
-    ├── lbs_tracking/
-    │   └── providers/
-    │       └── lbs_providers.dart        # locationProvider & osrmRouteProvider(带本地兜底)
-    ├── planner/
-    │   ├── pages/
-    │   │   └── planner_page.dart         # 主页 (包含地图层与交互式行程列表)
-    │   ├── providers/
-    │   │   └── planner_providers.dart    # 手写的 CurrentItineraryNotifier (无CodeGen)
-    │   └── widgets/
-    │       ├── ai_generation_form.dart   # 初始生成表单
-    │       ├── ai_copilot_fab.dart       # 悬浮伴游按钮
-    │       └── ai_copilot_chat_sheet.dart# 对话微调 BottomSheet
-    ├── memories/                         # Module 3 (相册归档，待开发)
-    └── social_feed/                      # Module 4 (社区动态，待开发)
-```
+- **AI 智能排程 (Module 1)**：Vercel 代理直连大模型，支持一键生成 JSON 行程结构，支持底部悬浮气泡自然语言对话，局部微调行程状态并重绘 UI。包含重置与刷新功能。
+- **LBS 真实定位与智能交通 (Module 2)**：接入 `geolocator` 获取用户蓝点定位；接入 OSRM 开源路线 API，沿真实街道画出深蓝色轨迹，并在 UI 列表渲染交通耗时（如 `🚗 驾车 15分钟`）。内置极限兜底算法（Haversine），OSRM 超时 2 秒即瞬间切换本地预估并画虚线。
 
 ---
 
-## 五、 AI 协作增量开发指南
-当接收到后续的开发指令时，AI 助手必须：
-1. 编写 State 相关的 Provider 时，直接编写 `AsyncNotifierProvider` 或 `StateNotifierProvider` 的手写实现，杜绝类上方的 `@riverpod` 标签。
-2. 涉及新增地理数据输入时，确保其处于 `WGS-84` 状态。
-3. 任何涉及 UI 层渲染地图的组件，必须引用 `TravelMapFactory`。
+## 🚀 三、 需求池 / Backlog (接下来我们要开发的模块)
+
+> *以下是我们接下来的开发蓝图，请在后续对话中根据我的指令，逐步提取并实现以下功能：*
+
+### Phase 1: 极致顺滑与解压 (UI/UX 升级)
+- [ ] **Task 1.1: 魔法 Loading 动画**：引入 `lottie` 或 `rive`。在 AI 思考的数十秒内，用高级的地球仪/粒子重组动画替换原有的 CircularProgressIndicator，并配合动态轮播的文案（"正在寻找最棒的咖啡馆..."）。
+- [ ] **Task 1.2: 骨架屏加载 (Shimmer)**：引入 `shimmer` 插件。在行程列表尚未渲染时，展示带有灰色流光闪烁的占位卡片。
+- [ ] **Task 1.3: 全局触觉反馈**：接入 `HapticFeedback.lightImpact()`。在发送对话指令、切换地图视角、点击刷新时提供清脆的物理震动。
+- [ ] **Task 1.4: 景点智能配图**：修改 AI Prompt，让其返回行程的配图关键字或直接生成 Emoji 缩略图，在左侧结合 `Hero` 动画展示圆角卡片。
+
+### Phase 2: “Aha Moment” 核心魔法功能
+- [ ] **Task 2.1: 天气与穿搭智能解绑**：接入免费天气 API (如 OpenWeather)。在给大模型发送 Prompt 时附带当地天气，让 AI 在行程 JSON 中加入：“🌧️ 明天有雨，已为您将户外活动替换为室内美术馆”。
+- [ ] **Task 2.2: 地理相册足迹点亮 (Module 3 核心)**：引入 `photo_manager`。一键扫描手机本地相册，提取照片的 EXIF 经纬度，自动匹配吸附到地图路线上的对应 POI 处，生成可视化旅行回忆。
+- [ ] **Task 2.3: 一键生成长图分享**：引入 `screenshot` 和 `path_provider`。将用户的地图路线、AI 生成的每一天卡片，拼接成一张极具设计感的高清长图，保存至本地或分享至社交媒体。
+
+### Phase 3: 商业化与底层工程基建
+- [ ] **Task 3.1: 本地离线缓存 (No-Network 模式)**：引入 `isar` 数据库或 `shared_preferences`。AI 生成 JSON 后立刻落盘，断网状态下也能秒开上次规划的行程，彻底解决出国无网的痛点。
+- [ ] **Task 3.2: 门面工程优化**：引入 `flutter_launcher_icons` (生成年轻化图标) 和 `flutter_native_splash` (顺滑过渡启动页，消灭白屏)。
+- [ ] **Task 3.3: 动态深色模式 (Dark Mode)**：适配系统夜间模式。切换时，UI 变为高级黑，地图底图自动无缝切换至 `CartoDB Dark Matter` 风格。

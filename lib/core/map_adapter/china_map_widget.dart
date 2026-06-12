@@ -46,7 +46,7 @@ class _ChinaMapWidgetState extends State<ChinaMapWidget> {
       children: [
         // 🌟 核心：白嫖高德地图的在线免费瓦片图层 (国内访问速度极快！)
         TileLayer(
-          urlTemplate: 'http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+          urlTemplate: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
           userAgentPackageName: 'com.example.map_app',
         ),
         

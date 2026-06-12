@@ -1,0 +1,57 @@
+import '../../domain/entities/itinerary.dart';
+
+class SocialPost {
+  final String id;
+  final String authorName;
+  final String authorAvatarUrl;
+  final String title;
+  final String description;
+  final String coverImageUrl;
+  final int likesCount;
+  final int copyCount;
+  final Itinerary itinerary;
+  final DateTime postedAt;
+  final bool isLikedByMe;
+
+  const SocialPost({
+    required this.id,
+    required this.authorName,
+    required this.authorAvatarUrl,
+    required this.title,
+    required this.description,
+    required this.coverImageUrl,
+    required this.likesCount,
+    required this.copyCount,
+    required this.itinerary,
+    required this.postedAt,
+    this.isLikedByMe = false,
+  });
+
+  SocialPost copyWith({
+    String? id,
+    String? authorName,
+    String? authorAvatarUrl,
+    String? title,
+    String? description,
+    String? coverImageUrl,
+    int? likesCount,
+    int? copyCount,
+    Itinerary? itinerary,
+    DateTime? postedAt,
+    bool? isLikedByMe,
+  }) {
+    return SocialPost(
+      id: id ?? this.id,
+      authorName: authorName ?? this.authorName,
+      authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      likesCount: likesCount ?? this.likesCount,
+      copyCount: copyCount ?? this.copyCount,
+      itinerary: itinerary ?? this.itinerary,
+      postedAt: postedAt ?? this.postedAt,
+      isLikedByMe: isLikedByMe ?? this.isLikedByMe,
+    );
+  }
+}

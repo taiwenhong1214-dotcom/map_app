@@ -10,6 +10,7 @@ import '../widgets/ai_copilot_fab.dart';
 import '../widgets/ai_generation_form.dart';
 import '../widgets/ai_copilot_chat_sheet.dart';
 import '../../lbs_tracking/lbs_providers.dart';
+import '../../social_feed/widgets/publish_post_sheet.dart';
 
 class PlannerPage extends ConsumerStatefulWidget {
   const PlannerPage({super.key});
@@ -108,6 +109,24 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     child: const Icon(Icons.my_location, color: Colors.blueAccent),
                     onPressed: () {
                       _mapController?.moveCamera(myLocState.value!, zoom: 15.0);
+                    },
+                  ),
+                const SizedBox(height: 12),
+
+                // 🌟 新增：发布到社区按钮
+                if (itineraryState.value != null && itineraryState.value!.days.isNotEmpty)
+                  FloatingActionButton.extended(
+                    heroTag: 'btn_publish',
+                    backgroundColor: Colors.green,
+                    icon: const Icon(Icons.public, color: Colors.white, size: 18),
+                    label: const Text('发布行程', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => PublishPostSheet(itinerary: itineraryState.value!),
+                      );
                     },
                   ),
               ],
