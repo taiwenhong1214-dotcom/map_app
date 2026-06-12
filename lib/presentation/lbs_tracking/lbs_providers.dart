@@ -91,7 +91,7 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
       fallbackLegs.add({'distance': roadDist, 'duration': durationSec});
     }
 
-    return {'points': <LatLng84>[], 'legs': fallbackLegs};
+    return {'points': rawPoints, 'legs': fallbackLegs};
   } catch (e) {
     return emptyResult; // 最坏情况：返回空数组，保底 UI 不卡死
   }
