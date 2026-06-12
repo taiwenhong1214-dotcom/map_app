@@ -18,10 +18,10 @@ export default async function handler(req, res) {
         'X-Title': 'Circular Travel',
       },
       body: JSON.stringify({
-        // 建议在这里固定使用 haiku，生成 JSON 最快且便宜
-        model: process.env.AI_MODEL || 'openai/gpt-oss-120b:free', 
+        // Use a reliable model that supports JSON mode and has higher availability
+        model: process.env.AI_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free', 
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks. Ensure the JSON is complete and not truncated." },
           { role: 'user', content: userMessage }
         ],
         // ⚠️ 核心修复 2：为了防止内容太长被截断，稍微给大点 Token
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     const content = data.choices[0].message.content;
     
     // 核心修复：清理可能存在的 Markdown 代码块标记，确保 JSON 解析成功
-    const cleanContent = content.replace(/```json|```/g, '').trim();
+    const cleanContent = content.replace(/```json\n?|```/g, '').trim();
     
     try {
       res.status(200).json(JSON.parse(cleanContent));
