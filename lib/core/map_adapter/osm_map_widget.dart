@@ -54,16 +54,28 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
           }).toList(),
         ),
         // 渲染 Marker 气球
+        // 渲染 Marker 气球和我的位置
         MarkerLayer(
           markers: widget.markers.map((m) {
+            // 如果是“我的位置”，显示专属蓝色发光圆点，否则显示红色地标
+            final isMyLocation = m.id == 'my_location';
             return Marker(
               point: ll.LatLng(m.position.latitude, m.position.longitude),
-              width: 40,
-              height: 40,
-              alignment: Alignment.topCenter,
+              width: isMyLocation ? 24 : 40,
+              height: isMyLocation ? 24 : 40,
+              alignment: Alignment.center,
               child: GestureDetector(
                 onTap: m.onTap,
-                child: const Icon(Icons.location_on, color: Colors.redAccent, size: 40),
+                child: isMyLocation
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 10)],
+                        ),
+                      )
+                    : const Icon(Icons.location_on, color: Colors.redAccent, size: 40),
               ),
             );
           }).toList(),

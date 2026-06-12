@@ -18,10 +18,10 @@ export default async function handler(req, res) {
         'X-Title': 'Circular Travel',
       },
       body: JSON.stringify({
-        // Use a reliable model that supports JSON mode and has higher availability
+        // 建议在这里固定使用 haiku，生成 JSON 最快且便宜
         model: process.env.AI_MODEL || 'deepseek/deepseek-v4-flash', 
         messages: [
-          { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks. Ensure the JSON is complete and not truncated." },
+          { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks." },
           { role: 'user', content: userMessage }
         ],
         // ⚠️ 核心修复 2：为了防止内容太长被截断，稍微给大点 Token
