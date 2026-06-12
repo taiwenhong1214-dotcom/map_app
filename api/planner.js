@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         // Use a reliable model that supports JSON mode and has higher availability
-        model: process.env.AI_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free', 
+        model: process.env.AI_MODEL || 'deepseek/deepseek-v4-flash', 
         messages: [
           { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks. Ensure the JSON is complete and not truncated." },
           { role: 'user', content: userMessage }
