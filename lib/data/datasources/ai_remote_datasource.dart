@@ -34,6 +34,9 @@ class AiRemoteDataSource {
       return response.data;
       
     } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('网络超时啦！大模型思考时间过长或加速器网络不稳定，请重试。');
+      }
       throw Exception('Vercel API 请求失败: ${e.response?.data ?? e.message}');
     } catch (e) {
       throw Exception('数据处理失败: $e');

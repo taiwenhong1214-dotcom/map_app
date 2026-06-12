@@ -1,33 +1,12 @@
 import 'package:flutter/material.dart';
 import 'i_travel_map.dart';
 import 'osm_map_widget.dart';
-import 'google_map_widget.dart';
+import 'china_map_widget.dart';
 import '../coordinate/coordinate_converter.dart';
 
-/// 地图工厂：双引擎策略调度中心
 class TravelMapFactory {
   TravelMapFactory._();
 
-  /// 解析当前应使用的地图引擎
-  static MapEngineType resolveEngine(
-    LatLng84 destination, {
-    MapEngineType? forceEngine,
-  }) {
-    // 1. 如果外部强行指定了引擎，优先使用
-    if (forceEngine != null) return forceEngine;
-
-    // 2. 根据目的地坐标判断境内外
-    final gcj = CoordinateConverter.wgs84ToGcj02(destination);
-    final isInChina = gcj.latitude != destination.latitude || 
-                      gcj.longitude != destination.longitude;
-
-    // 理想状态下：境内用 amap，境外用 google。
-    // 目前为了测试和兼容性，我们优先使用 OSM (OpenStreetMap)
-    // 如果需要切换回 Google，可以将此处逻辑改为对应的 EngineType
-    return MapEngineType.mapbox; // 借用 mapbox 枚举位或直接逻辑分发至 OSM
-  }
-
-  /// 构建地图 Widget
   static Widget build({
     Key? key,
     required LatLng84 initialCenter,
@@ -36,45 +15,34 @@ class TravelMapFactory {
     List<TravelMapMarker> markers = const [],
     List<TravelMapPolyline> polylines = const [],
     ValueChanged<ITravelMapController>? onMapCreated,
-    MapEngineType? forceEngine,
   }) {
-    final engine = resolveEngine(destinationForEngineDecision, forceEngine: forceEngine);
+    // 🌟 智能决策：利用我们写好的转换器，判断目的地是否在中国境内
+    final gcj = CoordinateConverter.wgs84ToGcj02(destinationForEngineDecision);
+    final isInChina = gcj.latitude != destinationForEngineDecision.latitude || 
+                      gcj.longitude != destinationForEngineDecision.longitude;
 
-    // 根据决策结果分发 Widget
-    switch (engine) {
-      case MapEngineType.amap:
-        // 优雅降级：原本该走高德的分支，暂时降级使用 Google Map
-        // 并可以在控制台打印日志以便后续追踪
-        debugPrint('⚠️ AMap is temporarily disabled. Falling back to Google Maps.');
-        return GoogleMapWidget(
-          key: key,
-          initialCenter: initialCenter,
-          initialZoom: initialZoom,
-          markers: markers,
-          polylines: polylines,
-          onMapCreated: onMapCreated,
-        );
-
-      case MapEngineType.google:
-        return GoogleMapWidget(
-          key: key,
-          initialCenter: initialCenter,
-          initialZoom: initialZoom,
-          markers: markers,
-          polylines: polylines,
-          onMapCreated: onMapCreated,
-        );
-
-      case MapEngineType.mapbox:
-        // 将 Mapbox 路由到 OSM 实现
-        return OsmMapWidget(
-          key: key,
-          initialCenter: initialCenter,
-          initialZoom: initialZoom,
-          markers: markers,
-          polylines: polylines,
-          onMapCreated: onMapCreated,
-        );
+    if (isInChina) {
+      // 🇨🇳 在国内：使用我们刚刚写的国内版地图（高德底图 + 火星坐标偏移修正）
+      debugPrint("🌏 检测到中国坐标，自动切换为【高德火星坐标引擎】");
+      return ChinaMapWidget(
+        key: key,
+        initialCenter: initialCenter,
+        initialZoom: initialZoom,
+        markers: markers,
+        polylines: polylines,
+        onMapCreated: onMapCreated,
+      );
+    } else {
+      // 🌍 在海外：使用 OpenStreetMap 标准地球坐标系
+      debugPrint("🌍 检测到海外坐标，自动切换为【OSM全球引擎】");
+      return OsmMapWidget(
+        key: key,
+        initialCenter: initialCenter,
+        initialZoom: initialZoom,
+        markers: markers,
+        polylines: polylines,
+        onMapCreated: onMapCreated,
+      );
     }
   }
 }
