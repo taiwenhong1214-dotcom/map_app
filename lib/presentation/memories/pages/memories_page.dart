@@ -9,18 +9,19 @@ class MemoriesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final albums = ref.watch(memoriesProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          const SliverAppBar.large(
-            title: Text(
+          SliverAppBar.large(
+            title: const Text(
               '旅迹相册',
               style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
-            backgroundColor: Colors.white,
+            backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
             surfaceTintColor: Colors.transparent,
             elevation: 0,
             floating: true,
@@ -124,8 +125,8 @@ class MemoriesPage extends ConsumerWidget {
                                     children: [
                                       Text(
                                         album.title,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : Colors.black87,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                           height: 1.2,
@@ -136,12 +137,12 @@ class MemoriesPage extends ConsumerWidget {
                                       const SizedBox(height: 6),
                                       Row(
                                         children: [
-                                          const Icon(Icons.photo_library, size: 14, color: Colors.white70),
+                                          Icon(Icons.photo_library, size: 14, color: isDark ? Colors.white70 : Colors.black54),
                                           const SizedBox(width: 4),
                                           Text(
                                             '${album.photos.length} 照片',
-                                            style: const TextStyle(
-                                              color: Colors.white70,
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white70 : Colors.black54,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
                                             ),

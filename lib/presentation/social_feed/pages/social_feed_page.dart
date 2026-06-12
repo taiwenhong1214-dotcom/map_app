@@ -12,12 +12,14 @@ class SocialFeedPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final posts = ref.watch(socialFeedProvider);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('发现', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0.5,
       ),
@@ -27,15 +29,15 @@ class SocialFeedPage extends ConsumerWidget {
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final post = posts[index];
-          return _buildPostCard(context, ref, post);
+          return _buildPostCard(context, ref, post, isDark);
         },
       ),
     );
   }
 
-  Widget _buildPostCard(BuildContext context, WidgetRef ref, SocialPost post) {
+  Widget _buildPostCard(BuildContext context, WidgetRef ref, SocialPost post, bool isDark) {
     return Container(
-      color: Colors.white,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +60,7 @@ class SocialFeedPage extends ConsumerWidget {
                     ),
                     Text(
                       timeago.format(post.postedAt, locale: 'en_short'),
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
                 ),
@@ -66,7 +68,7 @@ class SocialFeedPage extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.more_horiz),
                 onPressed: () {},
-                color: Colors.grey.shade600,
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
               ),
             ],
           ),
@@ -80,7 +82,7 @@ class SocialFeedPage extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             post.description,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade800, height: 1.4),
+            style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.grey.shade800, height: 1.4),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
@@ -154,14 +156,14 @@ class SocialFeedPage extends ConsumerWidget {
               const SizedBox(width: 24),
               _buildActionButton(
                 icon: Icons.share_outlined,
-                color: Colors.grey.shade600,
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
                 label: '分享',
                 onTap: () {},
               ),
               const Spacer(),
               Text(
                 '${post.copyCount} 人复刻',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 13),
               ),
             ],
           ),

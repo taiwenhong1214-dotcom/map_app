@@ -34,8 +34,10 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
       );
     }).toList();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.white,
       body: Column(
         children: [
           // 上半部分：地图层
@@ -118,13 +120,13 @@ class _MemoryDetailPageState extends State<MemoryDetailPage> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                          Icon(Icons.location_on, size: 16, color: isDark ? Colors.white54 : Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
                             '${widget.album.photos.length} 个足迹点',
                             style: TextStyle(
                               fontSize: 15,
-                              color: Colors.grey.shade600,
+                              color: isDark ? Colors.white54 : Colors.grey.shade600,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

@@ -33,7 +33,6 @@ class _MainLayoutState extends State<MainLayout> {
             _currentIndex = index;
           });
         },
-        backgroundColor: Colors.white,
         elevation: 8,
         indicatorColor: Colors.blueAccent.withValues(alpha: 0.2),
         destinations: const [

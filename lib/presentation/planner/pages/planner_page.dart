@@ -175,11 +175,14 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
             child: itineraryState.when(
               data: (itinerary) {
                 if (itinerary == null) {
-                  return const Center(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24),
-                        child: AiGenerationForm(),
+                  return SizedBox.expand(
+                    child: Align(
+                      alignment: const Alignment(0, 0.2), // 视觉重心偏下
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: const AiGenerationForm(),
+                        ),
                       ),
                     ),
                   );
@@ -192,10 +195,10 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 maxChildSize: 0.85,
                 builder: (context, scrollController) {
                   return Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
                     ),
                     child: ListView(
                       controller: scrollController,
@@ -384,10 +387,10 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
       maxChildSize: 0.85,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
           ),
           // 整个区域都放进 ListView，这样拖拽顶部横条或标题也能上下拉
           child: ListView.builder(
@@ -464,10 +467,11 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
 
   /// 每天的行程卡片
   Widget _buildDayCard(ItineraryDay day, int startGlobalIndex, Map<String, dynamic>? routeData, AppStrings strings) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
-      color: Colors.grey.shade50,
+      color: isDark ? const Color(0xFF242424) : Colors.grey.shade50,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -517,9 +521,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                           height: 48,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.shade100, width: 1),
+                            border: Border.all(color: isDark ? Colors.blue.withValues(alpha: 0.3) : Colors.blue.shade100, width: 1),
                           ),
                           child: Text(
                             poi.emoji ?? '📍',
@@ -536,7 +540,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                             if (poi.description != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4, bottom: 12),
-                                child: Text(poi.description!, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                                child: Text(poi.description!, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: 13)),
                               ),
                           ],
                         ),

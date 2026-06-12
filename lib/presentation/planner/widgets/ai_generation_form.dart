@@ -69,8 +69,6 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             controller: _destController,
             decoration: InputDecoration(
               labelText: strings.destinationLabel,
-              hintText: strings.defaultDest,
-              floatingLabelBehavior: FloatingLabelBehavior.always,
               prefixIcon: const Icon(Icons.flight_takeoff),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -81,8 +79,6 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               labelText: strings.daysLabel,
-              hintText: strings.defaultDays,
-              floatingLabelBehavior: FloatingLabelBehavior.always,
               prefixIcon: const Icon(Icons.calendar_month),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -94,8 +90,6 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             maxLines: 4,
             decoration: InputDecoration(
               labelText: strings.prefsLabel,
-              hintText: strings.defaultPrefs,
-              floatingLabelBehavior: FloatingLabelBehavior.always,
               alignLabelWithHint: true,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),

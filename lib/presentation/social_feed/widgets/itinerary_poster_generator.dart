@@ -21,7 +21,10 @@ class ItineraryPosterGenerator {
       final imageBytes = await screenshotController.captureFromWidget(
         InheritedTheme.captureAll(
           context,
-          Material(child: posterWidget),
+          Theme(
+            data: ThemeData.light(),
+            child: Material(child: posterWidget),
+          ),
         ),
         delay: const Duration(milliseconds: 500),
         pixelRatio: 2.0, // 高清
