@@ -282,7 +282,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
               final index = entry.key;
               final poi = entry.value;
 
-              String trafficText = '智能交通计算中...';
+              // 🌟 UI 状态增强：只要 routeData 不为空，就说明算完了（不管是网络还是本地）！
+              String trafficText = routeData == null ? '⏳ 智能交通计算中...' : '📍 本地测算完成';
+
               if (routeData != null && routeData['legs'] != null) {
                 final legs = routeData['legs'] as List;
                 final currentGlobalIndex = startGlobalIndex + index;
