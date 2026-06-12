@@ -6,8 +6,8 @@ class AiRemoteDataSource {
   final Dio dio;
   
   // ⚠️ 替换为你部署在 Vercel 上的真实域名
-  // 例如：'https://circular-travel-api.vercel.app/api/planner'
-  static const String _vercelApiUrl = 'https://你的vercel项目域名.vercel.app/api/planner';
+  // 例如：'https://tai-map-app.vercel.app/api/planner'
+  static const String _vercelApiUrl = 'https://tai-map-app.vercel.app/api/planner';
 
   AiRemoteDataSource(this.dio) {
     dio.options.headers = {
