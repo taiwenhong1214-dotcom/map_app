@@ -30,8 +30,8 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
     if (itineraryState.value != null) {
       final allPois = itineraryState.value!.days.expand((day) => day.pois).toList();
       if (allPois.length >= 2) {
-        final coordsStr = allPois.map((p) => '${p.location.latitude},${p.location.longitude}').join('|');
-        routeData = ref.watch(osrmRouteProvider(coordsStr)).valueOrNull;
+        final coordsStr = allPois.map((p) => '${p.location.longitude},${p.location.latitude}').join('|');
+        routeData = ref.watch(osrmRouteProvider(coordsStr)).value;
       }
     }
 
@@ -183,7 +183,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
     if (itinerary != null && itinerary.days.isNotEmpty) {
       final allPois = itinerary.days.expand((day) => day.pois).toList();
       if (allPois.isNotEmpty) {
-        center = allPois.first.location; 
+        if (myLoc == null) center = allPois.first.location;
         routePoints.addAll(allPois.map((p) => p.location));
 
         markers.addAll(allPois.map((poi) {
@@ -192,12 +192,12 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
       }
     }
 
-    if (routeData != null && routeData['points'] != null && (routeData['points'] as List).isNotEmpty) {
-      final points = routeData['points'] as List<LatLng84>;
+    if (routeData != null && routeData['points'] != null && (routeData['points'] as List<LatLng84>).isNotEmpty) {
+      final List<LatLng84> points = routeData['points'];
       polylines.add(TravelMapPolyline(
         id: 'osrm_road_route',
         points: points,
-        color: const Color(0xFF4A90E2),
+        color: Colors.blueAccent,
         width: 5.0,
       ));
     } else {
@@ -212,11 +212,14 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
     }
 
     final int poiCount = itinerary?.days.fold<int>(0, (int prev, day) => prev + day.pois.length) ?? 0;
+    // 🌟 关键修复：将 routeData 的点数加入 Key，确保数据回来时地图 Widget 强制重绘
+    final int routePointCount = (routeData?['points'] as List?)?.length ?? 0;
+    final String routeKey = 'route_${routePointCount}_${routeData != null}';
 
     return TravelMapFactory.build(
-      key: ValueKey('${itinerary?.id ?? 'default_map'}_${itinerary?.days.length ?? 0}_$poiCount'), 
-      initialCenter: center,
-      destinationForEngineDecision: center,
+      key: ValueKey('${itinerary?.id ?? 'default_map'}_${itinerary?.days.length ?? 0}_${poiCount}_$routeKey'), 
+      initialCenter: itinerary != null && itinerary.days.isNotEmpty ? itinerary.days.first.pois.first.location : center,
+      destinationForEngineDecision: itinerary != null && itinerary.days.isNotEmpty ? itinerary.days.first.pois.first.location : center,
       initialZoom: 13.0,
       markers: markers,
       polylines: polylines,
@@ -276,7 +279,16 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('第 ${day.dayIndex} 天', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, size: 18, color: Colors.blueAccent),
+                const SizedBox(width: 8),
+                Text(
+                  '第 ${day.dayIndex} 天',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             ...day.pois.asMap().entries.map((entry) {
               final index = entry.key;
@@ -321,14 +333,27 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                   ),
                   if (index != day.pois.length - 1)
                     Container(
-                      margin: const EdgeInsets.only(left: 9, bottom: 12),
+                      margin: const EdgeInsets.only(left: 9, top: 4, bottom: 12),
                       padding: const EdgeInsets.only(left: 20),
-                      decoration: const BoxDecoration(border: Border(left: BorderSide(color: Colors.blueAccent, width: 2, style: BorderStyle.solid))),
+                      decoration: BoxDecoration(
+                        border: BorderDirectional(
+                          start: BorderSide(
+                            color: Colors.blueAccent.withOpacity(0.2),
+                            width: 1.5,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.directions_car, size: 16, color: Colors.blueAccent),
+                          Icon(Icons.directions_car,
+                              size: 14, color: Colors.blueAccent.withOpacity(0.8)),
                           const SizedBox(width: 8),
-                          Text(trafficText, style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                          Text(trafficText,
+                              style: TextStyle(
+                                  color: Colors.blueAccent.withOpacity(0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
@@ -342,6 +367,4 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
   }
 }
 
-extension on AsyncValue<Map<String, dynamic>> {
-  Map<String, dynamic>? get valueOrNull => null;
-}
+// 移除错误的 extension，使用 AsyncValue 原生的 .value 即可

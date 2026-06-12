@@ -45,7 +45,7 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
   // ===== 尝试网络请求 =====
   try {
     final osrmCoords = parts.map((p) {
-      final latLng = p.split(',');
+      final latLng = p.trim().split(',');
       return '${latLng[1]},${latLng[0]}';
     }).join(';');
     
@@ -79,7 +79,7 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
   try {
     List<Map<String, dynamic>> fallbackLegs = [];
     List<LatLng84> rawPoints = parts.map((p) {
-      final latLng = p.split(',');
+      final latLng = p.trim().split(',');
       return LatLng84(double.parse(latLng[0]), double.parse(latLng[1]));
     }).toList();
 
