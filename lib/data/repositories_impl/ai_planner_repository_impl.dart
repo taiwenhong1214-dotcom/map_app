@@ -1,11 +1,13 @@
 import '../../domain/entities/itinerary.dart';
 import '../../domain/repositories/i_ai_planner_repository.dart';
 import '../datasources/ai_remote_datasource.dart';
+import '../datasources/weather_datasource.dart';
 import '../../core/coordinate/coordinate_converter.dart';
 import 'package:flutter/material.dart';
 
 class AiPlannerRepositoryImpl implements IAiPlannerRepository {
   final AiRemoteDataSource _dataSource;
+  final WeatherDataSource _weatherDataSource = WeatherDataSource();
 
   AiPlannerRepositoryImpl(this._dataSource);
 
@@ -17,7 +19,9 @@ class AiPlannerRepositoryImpl implements IAiPlannerRepository {
   }) async {
     const systemPrompt = '''
 你是一个专业的全球旅行AI规划师。请直接输出标准的JSON对象，不要有任何Markdown包裹。
-你需要根据目的地、天数和偏好生成行程安排。必须包含每日的 POI（经纬度要求严格准确，WGS-84标准）。
+你需要根据目的地、天数、天气预报和偏好生成行程安排。
+重要：请根据【天气预报】进行智能穿搭解绑和室内外活动调度（例如：如果在下雨，请将户外活动替换为室内美术馆等，并在 POI 的 description 中体现因为天气的调整理由）。
+必须包含每日的 POI（经纬度要求严格准确，WGS-84标准）。
 JSON 格式要求：
 {
   "title": "行程标题",
@@ -27,14 +31,17 @@ JSON 格式要求：
       "dayIndex": 1,
       "date": "2026-06-12",
       "pois": [
-        {"id": "p1", "name": "景点名称", "lat": 39.9, "lng": 116.4, "description": "描述", "category": "attraction"}
+        {"id": "p1", "name": "景点名称", "lat": 39.9, "lng": 116.4, "description": "描述", "category": "attraction", "emoji": "🏛️"}
       ]
     }
   ]
 }
 ''';
 
-    final prompt = "目的地: $destination, 天数: $days, 偏好: $userPreferences";
+    // 先获取天气上下文
+    final weatherContext = await _weatherDataSource.fetchWeatherForCity(destination, days);
+
+    final prompt = "目的地: $destination, 天数: $days, 偏好: $userPreferences\n\n【当地天气预报】:\n$weatherContext";
     
     try {
       final jsonResult = await _dataSource.fetchAiCompletion(systemPrompt, prompt);
@@ -86,10 +93,11 @@ $userPrompt
           final firstPoi = day.pois.first;
           final updatedPoi = POI(
             id: firstPoi.id,
-            name: '\${firstPoi.name} ✨(已调整)',
+            name: '${firstPoi.name} ✨(已调整)',
             location: firstPoi.location,
-            description: '\$userPrompt -> 这是本地兜底触发的模拟修改结果。',
+            description: '$userPrompt -> 这是本地兜底触发的模拟修改结果。',
             category: firstPoi.category,
+            emoji: firstPoi.emoji,
           );
           return ItineraryDay(
             dayIndex: day.dayIndex,
@@ -129,18 +137,20 @@ $userPrompt
         date: DateTime.now().add(Duration(days: index)),
         pois: [
           POI(
-            id: 'mock_\${index}_1',
-            name: '\$destination 必去地 \${index * 2 + 1}',
+            id: 'mock_${index}_1',
+            name: '$destination 必去地 ${index * 2 + 1}',
             location: LatLng84(center.latitude + index * 0.01, center.longitude + index * 0.01),
             description: '这是由于网络连接失败，本地兜底引擎为你生成的景点。',
             category: 'Attraction',
+            emoji: '📍',
           ),
           POI(
-            id: 'mock_\${index}_2',
-            name: '\$destination 特色餐厅 \${index * 2 + 2}',
+            id: 'mock_${index}_2',
+            name: '$destination 特色餐厅 ${index * 2 + 2}',
             location: LatLng84(center.latitude + index * 0.012, center.longitude + index * 0.015),
             description: '这是本地兜底为你安排的就餐地点。',
             category: 'Restaurant',
+            emoji: '🍽️',
           ),
         ],
       );
@@ -172,6 +182,7 @@ $userPrompt
               location: LatLng84(poi['lat'].toDouble(), poi['lng'].toDouble()),
               description: poi['description'],
               category: poi['category'],
+              emoji: poi['emoji'],
             );
           }).toList(),
         );

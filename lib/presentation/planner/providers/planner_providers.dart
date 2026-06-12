@@ -1,11 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../main.dart';
+
 import '../../../data/datasources/ai_remote_datasource.dart';
 import '../../../data/repositories_impl/ai_planner_repository_impl.dart';
+import '../../../data/repositories_impl/memory_repository_impl.dart';
 import '../../../domain/repositories/i_ai_planner_repository.dart';
 import '../../../domain/entities/itinerary.dart';
+import '../../../core/i18n/locale_provider.dart';
+import '../../../core/i18n/app_strings.dart';
 
 // 注意：这里我们删掉了 part '...g.dart' 和 @riverpod 注解，完全手写！
 
@@ -31,7 +37,26 @@ final aiPlannerRepositoryProvider = Provider<IAiPlannerRepository>((ref) {
   return AiPlannerRepositoryImpl(ref.watch(aiRemoteDataSourceProvider));
 });
 
+final memoryRepositoryProvider = Provider<MemoryRepositoryImpl>((ref) {
+  return MemoryRepositoryImpl();
+});
+
 // --- 状态管理 ---
+
+final photoFootprintsProvider = NotifierProvider<PhotoFootprintsNotifier, List<PhotoFootprint>>(() {
+  return PhotoFootprintsNotifier();
+});
+
+class PhotoFootprintsNotifier extends Notifier<List<PhotoFootprint>> {
+  @override
+  List<PhotoFootprint> build() {
+    return [];
+  }
+
+  void setFootprints(List<PhotoFootprint> newFootprints) {
+    state = newFootprints;
+  }
+}
 
 // 手写定义 Provider
 final currentItineraryNotifierProvider = 
@@ -49,6 +74,16 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
 
   @override
   FutureOr<Itinerary?> build() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final cached = prefs.getString('cached_itinerary');
+    if (cached != null) {
+      try {
+        final Map<String, dynamic> json = jsonDecode(cached);
+        return Itinerary.fromJson(json);
+      } catch (e) {
+        // ignore parsing errors
+      }
+    }
     return null; // 初始状态为空
   }
 
@@ -62,11 +97,21 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
     state = const AsyncValue.loading();
     try {
       final repo = ref.read(aiPlannerRepositoryProvider);
+      
+      final locale = ref.read(localeProvider);
+      final strings = AppStrings(locale);
+      final finalPrefs = '$preferences\n\n[SYSTEM INSTRUCTION: ${strings.aiLanguageInstruction}]';
+
       final itinerary = await repo.generateItinerary(
         destination: destination,
         days: days,
-        userPreferences: preferences,
+        userPreferences: finalPrefs,
       );
+
+      // Task 3.1: 本地离线缓存
+      final prefs = ref.read(sharedPreferencesProvider);
+      prefs.setString('cached_itinerary', jsonEncode(itinerary.toJson()));
+
       state = AsyncValue.data(itinerary);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -83,6 +128,8 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
   /// 🌟 新增：返回首页（清空当前行程数据，回到输入表单）
   void clear() {
     state = const AsyncValue.data(null);
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.remove('cached_itinerary');
   }
 
   /// 🌟 新增：直接设置行程（用于从社区一键复刻）
@@ -98,9 +145,14 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
     state = const AsyncValue.loading();
     try {
       final repo = ref.read(aiPlannerRepositoryProvider);
+      
+      final locale = ref.read(localeProvider);
+      final strings = AppStrings(locale);
+      final finalPrompt = '$userPrompt\n\n[SYSTEM INSTRUCTION: ${strings.aiLanguageInstruction}]';
+
       final newItinerary = await repo.optimizeItineraryWithCopilot(
         currentItinerary: currentItinerary,
-        userPrompt: userPrompt,
+        userPrompt: finalPrompt,
       );
       state = AsyncValue.data(newItinerary);
     } catch (e, st) {

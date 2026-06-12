@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/planner_providers.dart';
+import '../../../core/i18n/locale_provider.dart';
+import '../../../core/i18n/app_strings.dart';
 
 class AiGenerationForm extends ConsumerStatefulWidget {
   const AiGenerationForm({super.key});
@@ -10,9 +12,9 @@ class AiGenerationForm extends ConsumerStatefulWidget {
 }
 
 class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
-  final _destController = TextEditingController(text: '东京');
-  final _daysController = TextEditingController(text: '3');
-  final _prefController = TextEditingController(text: '喜欢小众咖啡馆、二次元、吃寿喜烧，节奏慢一点');
+  final _destController = TextEditingController();
+  final _daysController = TextEditingController();
+  final _prefController = TextEditingController();
 
   @override
   void dispose() {
@@ -22,26 +24,33 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
     super.dispose();
   }
 
-  void _submit() {
+  void _submit(AppStrings strings) {
     FocusScope.of(context).unfocus(); // 收起键盘
-    final days = int.tryParse(_daysController.text) ?? 3;
+    final dest = _destController.text.isNotEmpty ? _destController.text : strings.defaultDest;
+    final daysStr = _daysController.text.isNotEmpty ? _daysController.text : strings.defaultDays;
+    final days = int.tryParse(daysStr) ?? 3;
+    final prefs = _prefController.text.isNotEmpty ? _prefController.text : strings.defaultPrefs;
+
     ref.read(currentItineraryNotifierProvider.notifier).generate(
-          _destController.text,
+          dest,
           days,
-          _prefController.text,
+          prefs,
         );
   }
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+    final strings = context.strings(locale);
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -51,15 +60,17 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            '🌟 告诉 AI 你的想法',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            '🌟 ${strings.formTitle}',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           TextField(
             controller: _destController,
             decoration: InputDecoration(
-              labelText: '目的地',
+              labelText: strings.destinationLabel,
+              hintText: strings.defaultDest,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               prefixIcon: const Icon(Icons.flight_takeoff),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -69,7 +80,9 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             controller: _daysController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: '游玩天数',
+              labelText: strings.daysLabel,
+              hintText: strings.defaultDays,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               prefixIcon: const Icon(Icons.calendar_month),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -77,16 +90,19 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
           const SizedBox(height: 16),
           TextField(
             controller: _prefController,
-            maxLines: 2,
+            minLines: 1,
+            maxLines: 4,
             decoration: InputDecoration(
-              labelText: '旅行偏好 (越具体越好)',
+              labelText: strings.prefsLabel,
+              hintText: strings.defaultPrefs,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
               alignLabelWithHint: true,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: _submit,
+            onPressed: () => _submit(strings),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black87,
               foregroundColor: Colors.white,
@@ -96,7 +112,10 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
               ),
               elevation: 0,
             ),
-            child: const Text('一键生成行程', style: TextStyle(fontSize: 16)),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(strings.generateBtn, style: const TextStyle(fontSize: 16)),
+            ),
           ),
         ],
       ),

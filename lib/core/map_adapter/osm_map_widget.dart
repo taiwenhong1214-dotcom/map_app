@@ -63,8 +63,8 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
             final isMyLocation = m.id == 'my_location';
             return Marker(
               point: ll.LatLng(m.position.latitude, m.position.longitude),
-              width: isMyLocation ? 24 : 40,
-              height: isMyLocation ? 24 : 40,
+              width: isMyLocation ? 24 : (m.imageBytes != null ? 60 : 40),
+              height: isMyLocation ? 24 : (m.imageBytes != null ? 72 : 40),
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: m.onTap,
@@ -77,7 +77,23 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
                           boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 10)],
                         ),
                       )
-                    : const Icon(Icons.location_on, color: Colors.redAccent, size: 40),
+                    : (m.imageBytes != null
+                        ? Transform.rotate(
+                            angle: m.rotation ?? 0,
+                            child: Hero(
+                              tag: 'memory_${m.id}',
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(2, 4))],
+                                ),
+                                child: Image.memory(m.imageBytes!, fit: BoxFit.cover),
+                              ),
+                            ),
+                          )
+                        : const Icon(Icons.location_on, color: Colors.redAccent, size: 40)),
               ),
             );
           }).toList(),

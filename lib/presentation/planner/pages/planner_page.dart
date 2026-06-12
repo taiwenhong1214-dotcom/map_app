@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lottie/lottie.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../core/coordinate/coordinate_converter.dart';
 import '../../../core/map_adapter/i_travel_map.dart';
@@ -11,7 +14,10 @@ import '../widgets/ai_generation_form.dart';
 import '../widgets/ai_copilot_chat_sheet.dart';
 import '../../lbs_tracking/lbs_providers.dart';
 import '../../social_feed/widgets/publish_post_sheet.dart';
-
+import '../../social_feed/widgets/itinerary_poster_generator.dart';
+import '../../../data/repositories_impl/memory_repository_impl.dart';
+import '../../../core/i18n/locale_provider.dart';
+import '../../../core/i18n/app_strings.dart';
 class PlannerPage extends ConsumerStatefulWidget {
   const PlannerPage({super.key});
 
@@ -26,6 +32,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
   Widget build(BuildContext context) {
     final itineraryState = ref.watch(currentItineraryNotifierProvider);
     final myLocState = ref.watch(locationProvider);
+    final footprints = ref.watch(photoFootprintsProvider);
+    final locale = ref.watch(localeProvider);
+    final strings = context.strings(locale);
 
     Map<String, dynamic>? routeData;
     if (itineraryState.value != null) {
@@ -44,26 +53,37 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
             top: 0,
             left: 0,
             right: 0,
-            height: itineraryState.value != null
-                ? MediaQuery.of(context).size.height * 0.45
-                : MediaQuery.of(context).size.height,
-            child: _buildMapLayer(itineraryState.value, myLocState.value, routeData),
+            bottom: 0,
+            child: _buildMapLayer(itineraryState.value, myLocState.value, routeData, footprints),
           ),
 
           // 🌟 2. 左上角：返回首页按钮 (仅在有行程时显示)
           if (itineraryState.value != null)
             Positioned(
-              left: 16,
+              left: 0,
               top: MediaQuery.of(context).padding.top + 16,
-              child: FloatingActionButton.small(
-                heroTag: 'btn_home',
-                backgroundColor: Colors.black87,
+              child: Material(
+                color: Colors.black87,
                 elevation: 4,
-                child: const Icon(Icons.home, color: Colors.white),
-                onPressed: () {
-                  // 执行 Action: 清空数据，回到输入表单
-                  ref.read(currentItineraryNotifierProvider.notifier).clear();
-                },
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+                child: InkWell(
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    // 执行 Action: 清空数据，回到输入表单
+                    ref.read(currentItineraryNotifierProvider.notifier).clear();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 12, 20, 12),
+                    child: Icon(Icons.home, color: Colors.white, size: 22),
+                  ),
+                ),
               ),
             ),
 
@@ -73,6 +93,20 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
             top: MediaQuery.of(context).padding.top + 16,
             child: Column(
               children: [
+                // 🌟 新增：多语言切换按钮 (Task 3.4) - 仅在首页未加载时显示
+                if (itineraryState.value == null && !itineraryState.isLoading) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'btn_lang',
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    child: Text(strings.isEn ? '中' : 'EN', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      ref.read(localeProvider.notifier).toggleLocale();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // 🌟 新增：刷新按钮 (用同样的参数让 AI 重新生成一份行程)
                 if (itineraryState.value != null) ...[
                   FloatingActionButton.small(
@@ -80,6 +114,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     backgroundColor: Colors.white,
                     child: const Icon(Icons.refresh, color: Colors.orange),
                     onPressed: () {
+                      HapticFeedback.lightImpact();
                       // 执行 Action: 重新生成
                       ref.read(currentItineraryNotifierProvider.notifier).refresh();
                     },
@@ -90,10 +125,29 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 // 回到目的地行程按钮
                 if (itineraryState.value != null && itineraryState.value!.days.isNotEmpty) ...[
                   FloatingActionButton.small(
+                    heroTag: 'btn_memory',
+                    backgroundColor: Colors.pinkAccent,
+                    child: const Icon(Icons.photo_album, color: Colors.white),
+                    onPressed: () async {
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.scanningMemories)));
+                      final repo = ref.read(memoryRepositoryProvider);
+                      final results = await repo.matchPhotosToItinerary(itineraryState.value!);
+                      ref.read(photoFootprintsProvider.notifier).setFootprints(results);
+                      if (results.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.noMemories)));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.memoriesLit.replaceAll('{0}', results.length.toString()))));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
                     heroTag: 'btn_dest',
                     backgroundColor: Colors.black87,
                     child: const Icon(Icons.map, color: Colors.white),
                     onPressed: () {
+                      HapticFeedback.lightImpact();
                       final dest = itineraryState.value!.days.first.pois.first.location;
                       _mapController?.moveCamera(dest, zoom: 13.0);
                     },
@@ -108,25 +162,8 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     backgroundColor: Colors.white,
                     child: const Icon(Icons.my_location, color: Colors.blueAccent),
                     onPressed: () {
+                      HapticFeedback.lightImpact();
                       _mapController?.moveCamera(myLocState.value!, zoom: 15.0);
-                    },
-                  ),
-                const SizedBox(height: 12),
-
-                // 🌟 新增：发布到社区按钮
-                if (itineraryState.value != null && itineraryState.value!.days.isNotEmpty)
-                  FloatingActionButton.extended(
-                    heroTag: 'btn_publish',
-                    backgroundColor: Colors.green,
-                    icon: const Icon(Icons.public, color: Colors.white, size: 18),
-                    label: const Text('发布行程', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => PublishPostSheet(itinerary: itineraryState.value!),
-                      );
                     },
                   ),
               ],
@@ -139,27 +176,89 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
               data: (itinerary) {
                 if (itinerary == null) {
                   return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24),
-                      child: AiGenerationForm(),
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: AiGenerationForm(),
+                      ),
                     ),
                   );
                 }
-                return _buildItineraryPanel(context, itinerary, routeData);
+                return _buildItineraryPanel(context, itinerary, routeData, strings);
               },
-              loading: () => Center(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(16)),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: Colors.black87),
-                      SizedBox(height: 16),
-                      Text("AI 正在光速规划中...\n(可能需要 5-20 秒)", textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
+              loading: () => DraggableScrollableSheet(
+                initialChildSize: 0.45,
+                minChildSize: 0.1,
+                maxChildSize: 0.85,
+                builder: (context, scrollController) {
+                  return Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                    ),
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 8, bottom: 24),
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                          ),
+                        ),
+                        // Lottie 动画与轮播文案
+                        Center(
+                          child: Lottie.network(
+                            'https://raw.githubusercontent.com/xvrh/lottie-flutter/master/example/assets/LottieLogo1.json',
+                            height: 80,
+                            errorBuilder: (context, error, stackTrace) => const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(color: Colors.black87),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          strings.aiLoading, 
+                          textAlign: TextAlign.center, 
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blueAccent),
+                        ),
+                        const SizedBox(height: 32),
+                        // 骨架屏列表
+                        Shimmer.fromColors(
+                          baseColor: Colors.grey.shade200,
+                          highlightColor: Colors.grey.shade50,
+                          child: Column(
+                            children: List.generate(4, (index) => Padding(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(width: double.infinity, height: 18, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                                        const SizedBox(height: 8),
+                                        Container(width: 150, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
               error: (err, stack) => Center(
                 child: Card(
@@ -188,7 +287,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
   }
 
   /// 渲染地图与智能交通路线
-  Widget _buildMapLayer(Itinerary? itinerary, LatLng84? myLoc, Map<String, dynamic>? routeData) {
+  Widget _buildMapLayer(Itinerary? itinerary, LatLng84? myLoc, Map<String, dynamic>? routeData, List<PhotoFootprint> footprints) {
     LatLng84 center = const LatLng84(39.9042, 116.4074);
     List<TravelMapMarker> markers = [];
     List<TravelMapPolyline> polylines = [];
@@ -209,6 +308,35 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
           return TravelMapMarker(id: poi.id, position: poi.location, label: poi.name);
         }));
       }
+    }
+
+    // 🌟 处理拍立得照片足迹
+    for (var f in footprints) {
+      // 移除原本的红色 POI marker，替换为拍立得
+      markers.removeWhere((m) => m.id == f.poi.id);
+      markers.add(TravelMapMarker(
+        id: f.poi.id,
+        position: f.poi.location,
+        label: f.poi.name,
+        imageBytes: f.thumbnailData,
+        rotation: f.randomRotation,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          showDialog(
+            context: context,
+            barrierColor: Colors.black87,
+            builder: (ctx) => GestureDetector(
+              onTap: () => Navigator.pop(ctx),
+              child: Center(
+                child: Hero(
+                  tag: 'memory_${f.poi.id}',
+                  child: Image.memory(f.thumbnailData, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+          );
+        },
+      ));
     }
 
     if (routeData != null && routeData['points'] != null && (routeData['points'] as List<LatLng84>).isNotEmpty) {
@@ -249,45 +377,93 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
   }
 
   /// 渲染行程底部面板
-  Widget _buildItineraryPanel(BuildContext context, Itinerary itinerary, Map<String, dynamic>? routeData) {
-    int globalPoiIndex = 0;
+  Widget _buildItineraryPanel(BuildContext context, Itinerary itinerary, Map<String, dynamic>? routeData, AppStrings strings) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.45,
+      minChildSize: 0.1,
+      maxChildSize: 0.85,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+          ),
+          // 整个区域都放进 ListView，这样拖拽顶部横条或标题也能上下拉
+          child: ListView.builder(
+            controller: scrollController,
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            physics: const BouncingScrollPhysics(),
+            itemCount: itinerary.days.length + 1, // +1 给 Header (横条+标题)
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 拖拽把手
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 16),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    // 标题与发布按钮
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(itinerary.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            ),
+                            icon: const Icon(Icons.ios_share, size: 18),
+                            label: Text(strings.share, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              // Task 2.3 核心：一键生成杂志风长图
+                              final footprints = ref.read(photoFootprintsProvider);
+                              ItineraryPosterGenerator.sharePoster(context, itinerary, footprints, strings);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              }
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(margin: const EdgeInsets.only(top: 12, bottom: 16), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
-            Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: Text(itinerary.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                physics: const BouncingScrollPhysics(),
-                itemCount: itinerary.days.length,
-                itemBuilder: (context, index) {
-                  final day = itinerary.days[index];
-                  final card = _buildDayCard(day, globalPoiIndex, routeData);
-                  globalPoiIndex += day.pois.length;
-                  return card;
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+              // 具体行程卡片
+              final dayIndex = index - 1;
+              final day = itinerary.days[dayIndex];
+
+              // 动态计算该天的全局起始索引（修复了之前基于状态自增导致滚动错乱的 bug）
+              int startGlobalIndex = 0;
+              for (int i = 0; i < dayIndex; i++) {
+                startGlobalIndex += itinerary.days[i].pois.length;
+              }
+
+              return _buildDayCard(day, startGlobalIndex, routeData, strings);
+            },
+          ),
+        );
+      },
     );
   }
 
   /// 每天的行程卡片
-  Widget _buildDayCard(ItineraryDay day, int startGlobalIndex, Map<String, dynamic>? routeData) {
+  Widget _buildDayCard(ItineraryDay day, int startGlobalIndex, Map<String, dynamic>? routeData, AppStrings strings) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
@@ -303,7 +479,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 const Icon(Icons.calendar_today, size: 18, color: Colors.blueAccent),
                 const SizedBox(width: 8),
                 Text(
-                  '第 ${day.dayIndex} 天',
+                  '${strings.day} ${day.dayIndex}${strings.daySuffix}',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
                 ),
               ],
@@ -314,7 +490,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
               final poi = entry.value;
 
               // 🌟 UI 状态增强：只要 routeData 不为空，就说明算完了（不管是网络还是本地）！
-              String trafficText = routeData == null ? '⏳ 智能交通计算中...' : '📍 本地测算完成';
+              String trafficText = routeData == null ? strings.trafficLoading : strings.trafficLocal;
 
               if (routeData != null && routeData['legs'] != null) {
                 final legs = routeData['legs'] as List;
@@ -323,7 +499,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                   final leg = legs[currentGlobalIndex];
                   final distanceKm = (leg['distance'] / 1000).toStringAsFixed(1);
                   final durationMin = (leg['duration'] / 60).ceil();
-                  trafficText = '🚗 驾车 $durationMin 分钟 ($distanceKm km)';
+                  trafficText = strings.trafficInfo(durationMin, distanceKm);
                 }
               }
 
@@ -333,8 +509,25 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 20, color: Colors.black54),
-                      const SizedBox(width: 8),
+                      // 🌟 新增 Emoji 圆角卡片缩略图
+                      Hero(
+                        tag: 'emoji_${poi.id}',
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade100, width: 1),
+                          ),
+                          child: Text(
+                            poi.emoji ?? '📍',
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

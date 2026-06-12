@@ -1,5 +1,6 @@
 // lib/core/map_adapter/i_travel_map.dart
 
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../coordinate/coordinate_converter.dart';
 
@@ -16,6 +17,8 @@ class TravelMapMarker {
   final LatLng84 position; // 永远是 WGS-84，由 Adapter 内部负责转换
   final String? label;
   final String? avatarUrl; // 用于好友头像标记
+  final Uint8List? imageBytes; // 拍立得照片数据
+  final double? rotation; // 拍立得旋转角度
   final VoidCallback? onTap;
 
   const TravelMapMarker({
@@ -23,6 +26,8 @@ class TravelMapMarker {
     required this.position,
     this.label,
     this.avatarUrl,
+    this.imageBytes,
+    this.rotation,
     this.onTap,
   });
 }
