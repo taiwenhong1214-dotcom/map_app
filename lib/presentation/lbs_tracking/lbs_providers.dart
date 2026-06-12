@@ -46,7 +46,7 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
   try {
     final osrmCoords = parts.map((p) {
       final latLng = p.trim().split(',');
-      return '${latLng[1]},${latLng[0]}';
+      return '${latLng[0]},${latLng[1]}'; // OSRM expects lon,lat
     }).join(';');
     
     final url = 'https://router.project-osrm.org/route/v1/driving/$osrmCoords?geometries=geojson&overview=full';
@@ -80,7 +80,7 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
     List<Map<String, dynamic>> fallbackLegs = [];
     List<LatLng84> rawPoints = parts.map((p) {
       final latLng = p.trim().split(',');
-      return LatLng84(double.parse(latLng[0]), double.parse(latLng[1]));
+      return LatLng84(double.parse(latLng[1]), double.parse(latLng[0]));
     }).toList();
 
     for (int i = 0; i < rawPoints.length - 1; i++) {
