@@ -40,8 +40,10 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
       children: [
         // 免费的 OpenStreetMap 底图瓦片
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c', 'd'],
           userAgentPackageName: 'com.example.map_app',
+          retinaMode: true,
         ),
         // 渲染路线
         PolylineLayer(
