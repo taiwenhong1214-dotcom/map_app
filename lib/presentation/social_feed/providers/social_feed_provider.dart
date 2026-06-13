@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../domain/entities/social_post.dart';
 import '../../../domain/entities/itinerary.dart';
 import '../../../data/services/image_upload_service.dart';
+import '../../../main.dart';
 
 final socialFeedProvider = StreamProvider<List<SocialPost>>((ref) {
   return FirebaseFirestore.instance
@@ -58,3 +59,44 @@ class SocialFeedActions {
     await FirebaseFirestore.instance.collection('social_posts').doc(postId).delete();
   }
 }
+
+class LocalActionNotifier extends Notifier<Set<String>> {
+  final String prefKey;
+  
+  LocalActionNotifier(this.prefKey);
+
+  @override
+  Set<String> build() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final List<String>? saved = prefs.getStringList(prefKey);
+    return saved?.toSet() ?? {};
+  }
+
+  Future<void> toggle(String id) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final newState = Set<String>.from(state);
+    if (newState.contains(id)) {
+      newState.remove(id);
+    } else {
+      newState.add(id);
+    }
+    state = newState;
+    await prefs.setStringList(prefKey, newState.toList());
+  }
+
+  Future<void> add(String id) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final newState = Set<String>.from(state);
+    newState.add(id);
+    state = newState;
+    await prefs.setStringList(prefKey, newState.toList());
+  }
+}
+
+final likedPostsProvider = NotifierProvider<LocalActionNotifier, Set<String>>(() {
+  return LocalActionNotifier('liked_posts');
+});
+
+final copiedPostsProvider = NotifierProvider<LocalActionNotifier, Set<String>>(() {
+  return LocalActionNotifier('copied_posts');
+});

@@ -76,8 +76,8 @@ class _ChinaMapWidgetState extends State<ChinaMapWidget> {
 
             return Marker(
               point: ll.LatLng(gcj.latitude, gcj.longitude),
-              width: isMyLocation ? 24 : 40,
-              height: isMyLocation ? 24 : 40,
+              width: 80.0,
+              height: 80.0,
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: m.onTap,
@@ -90,7 +90,45 @@ class _ChinaMapWidgetState extends State<ChinaMapWidget> {
                           boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 10)],
                         ),
                       )
-                    : const Icon(Icons.location_on, color: Colors.redAccent, size: 40),
+                    : (m.imageBytes != null
+                        ? Transform.rotate(
+                            angle: m.rotation ?? 0,
+                            child: Hero(
+                              tag: 'memory_${m.id}',
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(2),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(2, 4))],
+                                ),
+                                child: Image.memory(m.imageBytes!, fit: BoxFit.cover),
+                              ),
+                            ),
+                          )
+                        : (m.label != null
+                            ? FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: m.id.startsWith('user_') ? Colors.green.shade700 : Colors.black87,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        m.label!, 
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    Icon(m.id.startsWith('user_') ? Icons.person_pin_circle : Icons.location_on, 
+                                         color: m.id.startsWith('user_') ? Colors.green : Colors.redAccent, size: 36),
+                                  ],
+                                ),
+                              )
+                            : const Icon(Icons.location_on, color: Colors.redAccent, size: 40))),
               ),
             );
           }).toList(),

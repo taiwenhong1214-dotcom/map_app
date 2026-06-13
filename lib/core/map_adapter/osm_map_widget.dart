@@ -63,8 +63,8 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
             final isMyLocation = m.id == 'my_location';
             return Marker(
               point: ll.LatLng(m.position.latitude, m.position.longitude),
-              width: isMyLocation ? 24 : (m.imageBytes != null ? 60 : 40),
-              height: isMyLocation ? 24 : (m.imageBytes != null ? 72 : 40),
+              width: isMyLocation ? 24 : (m.label != null ? 140 : (m.imageBytes != null ? 60 : 40)),
+              height: isMyLocation ? 24 : (m.label != null ? 80 : (m.imageBytes != null ? 72 : 40)),
               alignment: Alignment.center,
               child: GestureDetector(
                 onTap: m.onTap,
@@ -93,7 +93,29 @@ class _OsmMapWidgetState extends State<OsmMapWidget> {
                               ),
                             ),
                           )
-                        : const Icon(Icons.location_on, color: Colors.redAccent, size: 40)),
+                        : (m.label != null
+                            ? FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: m.id.startsWith('user_') ? Colors.green.shade700 : Colors.black87,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        m.label!, 
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    Icon(m.id.startsWith('user_') ? Icons.person_pin_circle : Icons.location_on, 
+                                         color: m.id.startsWith('user_') ? Colors.green : Colors.redAccent, size: 36),
+                                  ],
+                                ),
+                              )
+                            : const Icon(Icons.location_on, color: Colors.redAccent, size: 40))),
               ),
             );
           }).toList(),

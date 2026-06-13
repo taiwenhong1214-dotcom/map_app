@@ -15,6 +15,10 @@ final locationProvider = StreamProvider<LatLng84>((ref) async* {
     if (permission == LocationPermission.denied) throw Exception('定位权限被拒绝');
   }
 
+  // 强制获取一次当前位置，防止静止状态下 Stream 永远不吐出第一个数据导致一直 Loading
+  final currentPos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  yield LatLng84(currentPos.latitude, currentPos.longitude);
+
   yield* Geolocator.getPositionStream(
     locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
   ).map((pos) => LatLng84(pos.latitude, pos.longitude));
@@ -51,10 +55,13 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
     
     final url = 'https://router.project-osrm.org/route/v1/driving/$osrmCoords?geometries=geojson&overview=full';
     
-    // 给 Dio 本身加上超时，双重保险
+    // 给 Dio 本身加上超时，双重保险，并添加 User-Agent 防止被屏蔽
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(milliseconds: 5000),
       receiveTimeout: const Duration(milliseconds: 5000),
+      headers: {
+        'User-Agent': 'CircularTravelApp/1.0 (Contact: user@example.com)'
+      },
     ));
 
     final res = await dio.get(url);

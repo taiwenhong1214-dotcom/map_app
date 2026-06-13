@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/planner_providers.dart';
+import '../../../core/i18n/app_strings.dart';
+import '../../../core/i18n/locale_provider.dart';
 
 class MyTripsSheet extends ConsumerWidget {
   const MyTripsSheet({super.key});
@@ -9,6 +11,7 @@ class MyTripsSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final savedTrips = ref.watch(savedTripsNotifierProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final strings = context.strings(ref.read(localeProvider));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -30,18 +33,18 @@ class MyTripsSheet extends ConsumerWidget {
               ),
             ),
           ),
-          const Text(
-            '📖 我的手账本 (My Trips)',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          Text(
+            strings.myTripsTitle,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Expanded(
             child: savedTrips.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      '还没保存任何行程哦\n快去生成并保存你的第一次旅行吧！',
+                      strings.emptyTrips,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: Colors.grey.shade600),
                     ),
                   )
                 : ListView.builder(

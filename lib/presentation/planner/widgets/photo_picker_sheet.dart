@@ -53,7 +53,15 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
       return;
     }
 
-    final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(type: RequestType.image);
+    final filterOption = FilterOptionGroup(
+      orders: [
+        const OrderOption(type: OrderOptionType.createDate, asc: false),
+      ],
+    );
+    final List<AssetPathEntity> albums = await PhotoManager.getAssetPathList(
+      type: RequestType.image,
+      filterOption: filterOption,
+    );
     if (albums.isNotEmpty) {
       setState(() {
         _albums = albums;
@@ -151,7 +159,7 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _assets.isEmpty
-                    ? const Center(child: Text('相册为空'))
+                    ? Center(child: Text(context.strings(Localizations.localeOf(context)).emptyMemories))
                     : GridView.builder(
                         controller: _scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -204,13 +212,13 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
                                       color: Colors.black.withOpacity(0.6),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Center(
+                                    child: Center(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.check_circle, color: Colors.white, size: 28),
-                                          SizedBox(height: 4),
-                                          Text('已在地图', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                          const Icon(Icons.check_circle, color: Colors.white, size: 28),
+                                          const SizedBox(height: 4),
+                                          Text(context.strings(Localizations.localeOf(context)).alreadyOnMap, style: const TextStyle(color: Colors.white, fontSize: 12)),
                                         ],
                                       ),
                                     ),

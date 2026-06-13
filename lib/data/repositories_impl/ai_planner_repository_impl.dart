@@ -16,6 +16,9 @@ class AiPlannerRepositoryImpl implements IAiPlannerRepository {
     required String destination,
     required int days,
     required String userPreferences,
+    DateTime? startDate,
+    void Function(String)? onStatusChanged,
+    required dynamic strings,
   }) async {
     const systemPrompt = '''
 你是一个专业的全球旅行AI规划师。请直接输出标准的JSON对象，不要有任何Markdown包裹。
@@ -38,13 +41,38 @@ JSON 格式要求：
 }
 ''';
 
-    // 先获取天气上下文
-    final weatherContext = await _weatherDataSource.fetchWeatherForCity(destination, days);
+    // 先判断是否需要获取天气
+    String weatherContext = "无需天气信息";
+    bool shouldFetchWeather = false;
+
+    if (startDate != null) {
+      final now = DateTime.now();
+      final difference = startDate.difference(now).inDays;
+      if (difference >= 0 && difference <= 14) {
+        shouldFetchWeather = true;
+      }
+    }
+
+    if (shouldFetchWeather) {
+      onStatusChanged?.call(strings.statusFetchingWeather);
+      weatherContext = await _weatherDataSource.fetchWeatherForCity(destination, days);
+
+      if (weatherContext.contains('雨') || weatherContext.contains('雪') || weatherContext.contains('雷')) {
+        onStatusChanged?.call(strings.statusBadWeather);
+      } else {
+        onStatusChanged?.call(strings.statusGoodWeather);
+      }
+    } else {
+      onStatusChanged?.call(strings.statusSkippingWeather);
+      // Wait a little bit for the UI animation
+      await Future.delayed(const Duration(seconds: 1));
+    }
 
     final prompt = "目的地: $destination, 天数: $days, 偏好: $userPreferences\n\n【当地天气预报】:\n$weatherContext";
-    
+
     try {
       final jsonResult = await _dataSource.fetchAiCompletion(systemPrompt, prompt);
+      onStatusChanged?.call(strings.statusDecoding);
       return _parseItineraryFromJson(jsonResult);
     } catch (e) {
       debugPrint('⚠️ AI 规划网络请求失败，触发本地兜底生成机制: \$e');

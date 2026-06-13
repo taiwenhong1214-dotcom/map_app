@@ -7,6 +7,9 @@ abstract class IAiPlannerRepository {
     required String destination,
     required int days,
     required String userPreferences, // 如："休闲、美食为主"
+    DateTime? startDate,
+    void Function(String)? onStatusChanged,
+    required dynamic strings, // AppStrings
   });
 
   /// 对话式路线优化（局部修改）

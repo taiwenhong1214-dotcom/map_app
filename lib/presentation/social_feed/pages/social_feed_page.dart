@@ -9,6 +9,7 @@ import '../../../core/i18n/locale_provider.dart';
 import '../../../main.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
+import '../widgets/itinerary_poster_generator.dart';
 
 class SocialFeedPage extends ConsumerWidget {
   const SocialFeedPage({super.key});
@@ -97,11 +98,11 @@ class SocialFeedPage extends ConsumerWidget {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: Text('删除路线'),
-                        content: Text('确定要删除你分享的这条路线吗？'),
+                        title: Text(strings.confirmDeleteTitle),
+                        content: Text(strings.confirmDeleteContent),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
-                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('删除', style: TextStyle(color: Colors.red))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(strings.cancel)),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(strings.delete, style: const TextStyle(color: Colors.red))),
                         ],
                       ),
                     );
@@ -175,17 +176,25 @@ class SocialFeedPage extends ConsumerWidget {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
+                    final copiedPosts = ref.read(copiedPostsProvider);
+                    if (copiedPosts.contains(post.id)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(strings.itineraryCopied)),
+                      );
+                      return;
+                    }
                     // Action: Copy to my planner
                     SocialFeedActions.incrementCopy(post.id);
+                    ref.read(copiedPostsProvider.notifier).add(post.id);
                     ref.read(currentItineraryNotifierProvider.notifier).setItinerary(post.itinerary);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(strings.itineraryCopied)),
                     );
                   },
                   icon: const Icon(Icons.copy, size: 16),
-                  label: Text(strings.copyToPlanner),
+                  label: Text(ref.watch(copiedPostsProvider).contains(post.id) ? strings.copied : strings.copyToPlanner),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    backgroundColor: ref.watch(copiedPostsProvider).contains(post.id) ? Colors.grey : Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -201,11 +210,13 @@ class SocialFeedPage extends ConsumerWidget {
           Row(
             children: [
               _buildActionButton(
-                icon: post.isLikedByMe ? Icons.favorite : Icons.favorite_border,
-                color: post.isLikedByMe ? Colors.redAccent : Colors.grey.shade600,
-                label: post.likesCount.toString(),
+                icon: ref.watch(likedPostsProvider).contains(post.id) ? Icons.favorite : Icons.favorite_border,
+                color: ref.watch(likedPostsProvider).contains(post.id) ? Colors.redAccent : Colors.grey.shade600,
+                label: (post.likesCount + (ref.watch(likedPostsProvider).contains(post.id) ? 1 : 0)).toString(),
                 onTap: () {
-                  SocialFeedActions.toggleLike(post.id, post.isLikedByMe);
+                  final isCurrentlyLiked = ref.read(likedPostsProvider).contains(post.id);
+                  SocialFeedActions.toggleLike(post.id, isCurrentlyLiked);
+                  ref.read(likedPostsProvider.notifier).toggle(post.id);
                   HapticFeedback.lightImpact();
                 },
               ),
@@ -214,11 +225,14 @@ class SocialFeedPage extends ConsumerWidget {
                 icon: Icons.share_outlined,
                 color: isDark ? Colors.white54 : Colors.grey.shade600,
                 label: strings.share,
-                onTap: () {},
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  ItineraryPosterGenerator.sharePoster(ref, context, post.itinerary, []);
+                },
               ),
               const Spacer(),
               Text(
-                strings.copiesCount(post.copyCount),
+                strings.copiesCount(post.copyCount + (ref.watch(copiedPostsProvider).contains(post.id) ? 1 : 0)),
                 style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade500, fontSize: 13),
               ),
             ],

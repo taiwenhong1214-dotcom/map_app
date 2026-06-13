@@ -14,6 +14,16 @@ import '../../../data/datasources/itinerary_local_datasource.dart';
 import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/app_strings.dart';
 
+class GenerationStatusNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void setStatus(String? status) => state = status;
+}
+
+final generationStatusProvider = NotifierProvider<GenerationStatusNotifier, String?>(() {
+  return GenerationStatusNotifier();
+});
+
 // 注意：这里我们删掉了 part '...g.dart' 和 @riverpod 注解，完全手写！
 
 // --- 依赖注入 ---
@@ -139,13 +149,18 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
   }
 
   /// 一键生成全新行程
-  Future<void> generate(String destination, int days, String preferences) async {
+  Future<void> generate(String destination, int days, String preferences, {DateTime? startDate}) async {
     // 保存本次参数
     _lastDest = destination;
     _lastDays = days;
     _lastPrefs = preferences;
 
     state = const AsyncValue.loading();
+    ref.read(photoFootprintsProvider.notifier).setFootprints([]);
+    
+    // Invalidate OSRM cache so we don't reuse straight-line fallbacks from previous failures
+    // Note: since it's a family provider, we can't easily invalidate all instances without iterating,
+    // but a hot restart will clear it anyway. To be safe, we'll let the user know to restart.
     try {
       final repo = ref.read(aiPlannerRepositoryProvider);
       
@@ -157,6 +172,11 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
         destination: destination,
         days: days,
         userPreferences: finalPrefs,
+        startDate: startDate,
+        strings: strings,
+        onStatusChanged: (status) {
+          ref.read(generationStatusProvider.notifier).setStatus(status);
+        },
       );
 
       // Task 3.1: 本地离线缓存
@@ -179,13 +199,14 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
   /// 🌟 新增：返回首页（清空当前行程数据，回到输入表单）
   void clear() {
     state = const AsyncValue.data(null);
-    final prefs = ref.read(sharedPreferencesProvider);
-    prefs.remove('cached_itinerary');
+    ref.read(photoFootprintsProvider.notifier).setFootprints([]);
+    ref.read(sharedPreferencesProvider).remove('cached_itinerary');
   }
 
   /// 🌟 新增：直接设置行程（用于从社区一键复刻，或者从“我的行程”加载）
   void setItinerary(Itinerary itinerary) {
     state = AsyncValue.data(itinerary);
+    ref.read(photoFootprintsProvider.notifier).setFootprints([]);
     final prefs = ref.read(sharedPreferencesProvider);
     prefs.setString('cached_itinerary', jsonEncode(itinerary.toJson()));
   }

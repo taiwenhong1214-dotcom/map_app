@@ -70,7 +70,7 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
 
     if (_authorController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('请输入作者昵称')),
+        SnackBar(content: Text(strings.authorNameRequired)),
       );
       return;
     }
@@ -254,11 +254,11 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
                           ref.read(sharedPreferencesProvider).setString('author_avatar', url);
                         } else {
                           setState(() => _isUploadingAvatar = false);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('头像上传失败 (返回为空)')));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.avatarUploadFailedEmpty)));
                         }
                       } catch (e) {
                         setState(() => _isUploadingAvatar = false);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('头像上传失败')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.avatarUploadFailed)));
                       }
                     }
                   }
@@ -293,8 +293,8 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
                 child: TextField(
                   controller: _authorController,
                   decoration: InputDecoration(
-                    labelText: '作者昵称',
-                    hintText: '大家都会看到这个名字哦',
+                    labelText: strings.authorNameLabel,
+                    hintText: strings.authorNameHint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

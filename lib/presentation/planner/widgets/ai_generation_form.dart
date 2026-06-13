@@ -15,6 +15,7 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
   final _destController = TextEditingController();
   final _daysController = TextEditingController();
   final _prefController = TextEditingController();
+  DateTime? _startDate;
 
   @override
   void dispose() {
@@ -35,7 +36,22 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
           dest,
           days,
           prefs,
+          startDate: _startDate,
         );
+  }
+
+  Future<void> _pickDate(AppStrings strings) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+      });
+    }
   }
 
   @override
@@ -89,6 +105,29 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               filled: true,
               fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+            ),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: () => _pickDate(strings),
+            borderRadius: BorderRadius.circular(12),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: strings.startDateLabel,
+                hintText: strings.startDateHint,
+                floatingLabelBehavior: FloatingLabelBehavior.always,
+                prefixIcon: const Icon(Icons.date_range),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                filled: true,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+              ),
+              child: Text(
+                _startDate != null ? '${_startDate!.year}-${_startDate!.month.toString().padLeft(2, '0')}-${_startDate!.day.toString().padLeft(2, '0')}' : strings.selectDate,
+                style: TextStyle(
+                  color: _startDate != null ? Theme.of(context).textTheme.bodyLarge?.color : Colors.grey.shade500,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),

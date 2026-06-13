@@ -14,16 +14,10 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 void main() async {
   // 确保 Flutter 绑定初始化（用于后续地图、后台定位等插件）
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // Wipe all posts to start fresh
-  final firestore = FirebaseFirestore.instance;
-  final docs = await firestore.collection('social_posts').get();
-  for (var doc in docs.docs) {
-    await doc.reference.delete();
-  }
 
   // Seed default data if Firestore collections are empty
   await MockDataService.seedIfEmpty();
