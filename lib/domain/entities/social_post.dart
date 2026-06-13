@@ -3,6 +3,7 @@ import '../../domain/entities/itinerary.dart';
 class SocialPost {
   final String id;
   final String authorName;
+  final String? authorId;
   final String authorAvatarUrl;
   final String title;
   final String description;
@@ -16,6 +17,7 @@ class SocialPost {
   const SocialPost({
     required this.id,
     required this.authorName,
+    this.authorId,
     required this.authorAvatarUrl,
     required this.title,
     required this.description,
@@ -30,6 +32,7 @@ class SocialPost {
   SocialPost copyWith({
     String? id,
     String? authorName,
+    String? authorId,
     String? authorAvatarUrl,
     String? title,
     String? description,
@@ -43,6 +46,7 @@ class SocialPost {
     return SocialPost(
       id: id ?? this.id,
       authorName: authorName ?? this.authorName,
+      authorId: authorId ?? this.authorId,
       authorAvatarUrl: authorAvatarUrl ?? this.authorAvatarUrl,
       title: title ?? this.title,
       description: description ?? this.description,
@@ -58,6 +62,7 @@ class SocialPost {
   Map<String, dynamic> toJson() => {
         'id': id,
         'authorName': authorName,
+        'authorId': authorId,
         'authorAvatarUrl': authorAvatarUrl,
         'title': title,
         'description': description,
@@ -72,6 +77,7 @@ class SocialPost {
   factory SocialPost.fromJson(Map<String, dynamic> json) => SocialPost(
         id: json['id'] as String,
         authorName: json['authorName'] as String,
+        authorId: json['authorId'] as String?,
         authorAvatarUrl: json['authorAvatarUrl'] as String,
         title: json['title'] as String,
         description: json['description'] as String,

@@ -53,4 +53,8 @@ class SocialFeedActions {
     
     await FirebaseFirestore.instance.collection('social_posts').add(json);
   }
+
+  static Future<void> deletePost(String postId) async {
+    await FirebaseFirestore.instance.collection('social_posts').doc(postId).delete();
+  }
 }

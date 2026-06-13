@@ -18,11 +18,28 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
   AssetPathEntity? _selectedAlbum;
   List<AssetEntity> _assets = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 0;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadAlbums();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreAssets();
+    }
   }
 
   Future<void> _loadAlbums() async {
@@ -55,11 +72,28 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
   Future<void> _fetchAssets() async {
     if (_selectedAlbum == null) return;
     setState(() => _isLoading = true);
-    final photos = await _selectedAlbum!.getAssetListPaged(page: 0, size: 200);
+    _currentPage = 0;
+    _hasMore = true;
+    final photos = await _selectedAlbum!.getAssetListPaged(page: _currentPage, size: 60);
     if (mounted) {
       setState(() {
         _assets = photos;
+        _hasMore = photos.length == 60;
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreAssets() async {
+    if (_selectedAlbum == null || !_hasMore || _isLoadingMore || _isLoading) return;
+    setState(() => _isLoadingMore = true);
+    _currentPage++;
+    final photos = await _selectedAlbum!.getAssetListPaged(page: _currentPage, size: 60);
+    if (mounted) {
+      setState(() {
+        _assets.addAll(photos);
+        _hasMore = photos.length == 60;
+        _isLoadingMore = false;
       });
     }
   }
@@ -119,6 +153,7 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
                 : _assets.isEmpty
                     ? const Center(child: Text('相册为空'))
                     : GridView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         physics: const BouncingScrollPhysics(),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -126,8 +161,16 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
                         ),
-                        itemCount: _assets.length,
+                        itemCount: _assets.length + (_hasMore ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (index == _assets.length) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
                           final asset = _assets[index];
                           final isUsed = widget.alreadyUsedAssetIds.contains(asset.id);
 

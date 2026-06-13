@@ -9,6 +9,8 @@ import '../../planner/widgets/photo_picker_sheet.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/i18n/locale_provider.dart';
 import '../../../main.dart';
+import 'dart:math';
+import '../../../data/services/image_upload_service.dart';
 
 class PublishPostSheet extends ConsumerStatefulWidget {
   final Itinerary itinerary;
@@ -24,6 +26,8 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
   final _descController = TextEditingController();
   final _authorController = TextEditingController();
   String? _selectedCoverPath;
+  String _avatarUrl = 'https://i.pravatar.cc/150?img=68';
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -41,6 +45,7 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
     }
     if (_authorController.text.isEmpty) {
       _authorController.text = ref.read(sharedPreferencesProvider).getString('author_name') ?? '';
+      _avatarUrl = ref.read(sharedPreferencesProvider).getString('author_avatar') ?? 'https://i.pravatar.cc/150?img=68';
     }
   }
 
@@ -73,11 +78,19 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
     // Save author name for next time
     ref.read(sharedPreferencesProvider).setString('author_name', _authorController.text.trim());
 
+    // Ensure device id exists
+    String? deviceId = ref.read(sharedPreferencesProvider).getString('device_id');
+    if (deviceId == null) {
+      deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}';
+      ref.read(sharedPreferencesProvider).setString('device_id', deviceId);
+    }
+
     // Create a new post
     final newPost = SocialPost(
       id: 'post_${DateTime.now().millisecondsSinceEpoch}',
       authorName: _authorController.text.trim(),
-      authorAvatarUrl: 'https://i.pravatar.cc/150?img=68', // Random cute avatar
+      authorId: deviceId,
+      authorAvatarUrl: _avatarUrl,
       title: _titleController.text,
       description: _descController.text.isNotEmpty 
           ? _descController.text 
@@ -218,16 +231,78 @@ class _PublishPostSheetState extends ConsumerState<PublishPostSheet> {
           ),
           const SizedBox(height: 24),
           
-          TextField(
-            controller: _authorController,
-            decoration: InputDecoration(
-              labelText: '作者昵称',
-              hintText: '大家都会看到这个名字哦',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _isUploadingAvatar ? null : () async {
+                  final AssetEntity? asset = await showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (ctx) => const PhotoPickerSheet(alreadyUsedAssetIds: []),
+                  );
+                  if (asset != null) {
+                    final file = await asset.file;
+                    if (file != null) {
+                      setState(() => _isUploadingAvatar = true);
+                      try {
+                        final url = await ImageUploadService.uploadImage(file);
+                        if (url != null) {
+                          setState(() {
+                            _avatarUrl = url;
+                            _isUploadingAvatar = false;
+                          });
+                          ref.read(sharedPreferencesProvider).setString('author_avatar', url);
+                        } else {
+                          setState(() => _isUploadingAvatar = false);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('头像上传失败 (返回为空)')));
+                        }
+                      } catch (e) {
+                        setState(() => _isUploadingAvatar = false);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('头像上传失败')));
+                      }
+                    }
+                  }
+                },
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundImage: NetworkImage(_avatarUrl),
+                    ),
+                    if (_isUploadingAvatar)
+                      const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    if (!_isUploadingAvatar)
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 12),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  controller: _authorController,
+                  decoration: InputDecoration(
+                    labelText: '作者昵称',
+                    hintText: '大家都会看到这个名字哦',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 

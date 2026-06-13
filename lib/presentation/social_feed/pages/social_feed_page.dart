@@ -6,6 +6,7 @@ import '../../../domain/entities/social_post.dart';
 import '../../planner/providers/planner_providers.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/i18n/locale_provider.dart';
+import '../../../main.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 
@@ -89,11 +90,33 @@ class SocialFeedPage extends ConsumerWidget {
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.more_horiz),
-                onPressed: () {},
-                color: isDark ? Colors.white54 : Colors.grey.shade600,
-              ),
+              if (post.authorId != null && post.authorId == ref.read(sharedPreferencesProvider).getString('device_id'))
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text('删除路线'),
+                        content: Text('确定要删除你分享的这条路线吗？'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
+                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('删除', style: TextStyle(color: Colors.red))),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      SocialFeedActions.deletePost(post.id);
+                    }
+                  },
+                  color: Colors.redAccent,
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.more_horiz),
+                  onPressed: () {},
+                  color: isDark ? Colors.white54 : Colors.grey.shade600,
+                ),
             ],
           ),
           const SizedBox(height: 12),

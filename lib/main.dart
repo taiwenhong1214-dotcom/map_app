@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'presentation/main_layout.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'data/services/mock_data_service.dart';
 
@@ -17,6 +18,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Wipe all posts to start fresh
+  final firestore = FirebaseFirestore.instance;
+  final docs = await firestore.collection('social_posts').get();
+  for (var doc in docs.docs) {
+    await doc.reference.delete();
+  }
 
   // Seed default data if Firestore collections are empty
   await MockDataService.seedIfEmpty();
