@@ -13,6 +13,7 @@ import '../providers/planner_providers.dart';
 import '../widgets/ai_copilot_fab.dart';
 import '../widgets/ai_generation_form.dart';
 import '../widgets/map_search_bar.dart';
+import '../widgets/my_trips_sheet.dart';
 import '../widgets/ai_copilot_chat_sheet.dart';
 import '../../lbs_tracking/lbs_providers.dart';
 import '../../social_feed/widgets/publish_post_sheet.dart';
@@ -66,8 +67,8 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
               left: 0,
               top: MediaQuery.of(context).padding.top + 16,
               child: Material(
-                color: Colors.black87,
-                elevation: 4,
+                color: Theme.of(context).cardColor,
+                elevation: 0,
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(24),
                   bottomRight: Radius.circular(24),
@@ -82,9 +83,18 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     // 执行 Action: 清空数据，回到输入表单
                     ref.read(currentItineraryNotifierProvider.notifier).clear();
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 12, 20, 12),
-                    child: Icon(Icons.home, color: Colors.white, size: 22),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(2, 0)),
+                      ],
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 20, 12),
+                    child: Icon(Icons.home, color: Theme.of(context).iconTheme.color ?? Colors.black87, size: 22),
                   ),
                 ),
               ),
@@ -108,14 +118,30 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'btn_my_trips',
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: const Icon(Icons.menu_book, color: Colors.white),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (ctx) => const MyTripsSheet(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
                 ],
 
                 // 🌟 新增：刷新按钮 (用同样的参数让 AI 重新生成一份行程)
                 if (itineraryState.value != null) ...[
                   FloatingActionButton.small(
                     heroTag: 'btn_refresh',
-                    backgroundColor: Colors.white,
-                    child: const Icon(Icons.refresh, color: Colors.orange),
+                    backgroundColor: Theme.of(context).cardColor,
+                    elevation: 2,
+                    child: Icon(Icons.refresh, color: Theme.of(context).colorScheme.primary),
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       // 执行 Action: 重新生成
@@ -129,8 +155,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 if (itineraryState.value != null && itineraryState.value!.days.isNotEmpty) ...[
                   FloatingActionButton.small(
                     heroTag: 'btn_memory',
-                    backgroundColor: Colors.pinkAccent,
-                    child: const Icon(Icons.photo_album, color: Colors.white),
+                    backgroundColor: Theme.of(context).cardColor,
+                    elevation: 2,
+                    child: const Icon(Icons.photo_album, color: Colors.pinkAccent),
                     onPressed: () async {
                       HapticFeedback.lightImpact();
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.scanningMemories)));
@@ -147,8 +174,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                   const SizedBox(height: 12),
                   FloatingActionButton.small(
                     heroTag: 'btn_dest',
-                    backgroundColor: Colors.black87,
-                    child: const Icon(Icons.map, color: Colors.white),
+                    backgroundColor: Theme.of(context).cardColor,
+                    elevation: 2,
+                    child: Icon(Icons.map, color: Theme.of(context).iconTheme.color ?? Colors.black87),
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       final dest = itineraryState.value!.days.first.pois.first.location;
@@ -162,8 +190,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                 if (myLocState.value != null)
                   FloatingActionButton.small(
                     heroTag: 'btn_my_loc',
-                    backgroundColor: Colors.white,
-                    child: const Icon(Icons.my_location, color: Colors.blueAccent),
+                    backgroundColor: Theme.of(context).cardColor,
+                    elevation: 2,
+                    child: Icon(Icons.my_location, color: Theme.of(context).colorScheme.primary),
                     onPressed: () {
                       HapticFeedback.lightImpact();
                       _mapController?.moveCamera(myLocState.value!, zoom: 15.0);
@@ -207,7 +236,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, -4))],
                     ),
                     child: ListView(
                       controller: scrollController,
@@ -422,7 +451,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 16, offset: const Offset(0, -4))],
           ),
           // 整个区域都放进 ListView，这样拖拽顶部横条或标题也能上下拉
           child: ListView.builder(
@@ -446,30 +475,78 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                     ),
                     // 标题与发布按钮
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Row(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(itinerary.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          Text(itinerary.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            child: Row(
+                              children: [
+                                if (itinerary.localId == null) ...[
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orangeAccent,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    ),
+                                    icon: const Icon(Icons.save, size: 18),
+                                    label: Text(strings.save, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    onPressed: () async {
+                                      HapticFeedback.mediumImpact();
+                                      await ref.read(currentItineraryNotifierProvider.notifier).saveToLocal();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text(strings.savedToLocal)),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                  icon: const Icon(Icons.public, size: 18),
+                                  label: Text(strings.publishCommunity, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (ctx) => PublishPostSheet(itinerary: itinerary),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                  icon: const Icon(Icons.ios_share, size: 18),
+                                  label: Text(strings.share, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    // Task 2.3 核心：一键生成杂志风长图
+                                    final footprints = ref.read(photoFootprintsProvider);
+                                    ItineraryPosterGenerator.sharePoster(context, itinerary, footprints, strings);
+                                  },
+                                ),
+                              ],
                             ),
-                            icon: const Icon(Icons.ios_share, size: 18),
-                            label: Text(strings.share, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              // Task 2.3 核心：一键生成杂志风长图
-                              final footprints = ref.read(photoFootprintsProvider);
-                              ItineraryPosterGenerator.sharePoster(context, itinerary, footprints, strings);
-                            },
                           ),
                         ],
                       ),
@@ -504,7 +581,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
-      color: isDark ? const Color(0xFF242424) : Colors.grey.shade50,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -513,11 +590,11 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.calendar_today, size: 18, color: Colors.blueAccent),
+                Icon(Icons.calendar_today, size: 18, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   '${strings.day} ${day.dayIndex}${strings.daySuffix}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
                 ),
               ],
             ),
@@ -610,11 +687,11 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                                         }
                                       }
                                     },
-                                    child: const Row(
+                                    child: Row(
                                       children: [
-                                        Icon(Icons.add_a_photo, size: 14, color: Colors.blueAccent),
-                                        SizedBox(width: 4),
-                                        Text('添加照片', style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        const Icon(Icons.add_a_photo, size: 14, color: Colors.blueAccent),
+                                        const SizedBox(width: 4),
+                                        Text(strings.addPhoto, style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                                       ],
                                     ),
                                   );
@@ -633,7 +710,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                       decoration: BoxDecoration(
                         border: BorderDirectional(
                           start: BorderSide(
-                            color: Colors.blueAccent.withOpacity(0.2),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                             width: 1.5,
                             style: BorderStyle.solid,
                           ),
@@ -642,11 +719,11 @@ class _PlannerPageState extends ConsumerState<PlannerPage> {
                       child: Row(
                         children: [
                           Icon(Icons.directions_car,
-                              size: 14, color: Colors.blueAccent.withOpacity(0.8)),
+                              size: 14, color: Theme.of(context).colorScheme.primary.withOpacity(0.8)),
                           const SizedBox(width: 8),
                           Text(trafficText,
                               style: TextStyle(
-                                  color: Colors.blueAccent.withOpacity(0.9),
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.9),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500)),
                         ],

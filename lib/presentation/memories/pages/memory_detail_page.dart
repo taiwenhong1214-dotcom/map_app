@@ -6,6 +6,11 @@ import '../../../core/map_adapter/i_travel_map.dart';
 import '../../planner/providers/planner_providers.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/i18n/locale_provider.dart';
+import 'dart:io';
+import 'package:photo_manager/photo_manager.dart';
+import '../../planner/widgets/photo_picker_sheet.dart';
+import '../providers/memories_provider.dart';
+import '../../../core/coordinate/coordinate_converter.dart';
 
 class MemoryDetailPage extends ConsumerStatefulWidget {
   final MemoryAlbum album;
@@ -21,10 +26,21 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 每次渲染都从 Provider 里拿最新的相册状态，防止自己拿旧的 widget.album
+    final memoriesAsyncValue = ref.watch(memoriesProvider);
+    final currentAlbum = memoriesAsyncValue.when(
+      data: (albums) => albums.firstWhere(
+        (a) => a.id == widget.album.id, 
+        orElse: () => widget.album,
+      ),
+      loading: () => widget.album,
+      error: (_, __) => widget.album,
+    );
+
     final locale = ref.watch(localeProvider);
     final strings = context.strings(locale);
 
-    final markers = widget.album.photos.map((photo) {
+    final markers = currentAlbum.photos.map((photo) {
       return TravelMapMarker(
         id: photo.id,
         position: photo.location,
@@ -58,8 +74,8 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
                     child: TravelMapFactory.build(
-                      initialCenter: widget.album.centerLocation,
-                      destinationForEngineDecision: widget.album.centerLocation,
+                      initialCenter: currentAlbum.centerLocation,
+                      destinationForEngineDecision: currentAlbum.centerLocation,
                       initialZoom: 12.0,
                       markers: markers,
                       onMapCreated: (controller) {
@@ -99,6 +115,44 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                     ),
                   ),
                 ),
+                // 新增：上传照片按钮
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  right: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white.withValues(alpha: 0.9),
+                    child: IconButton(
+                      icon: const Icon(Icons.add_a_photo, color: Colors.blueAccent),
+                      onPressed: () async {
+                        final usedIds = currentAlbum.photos.map((p) => p.id).toList();
+                        final AssetEntity? asset = await showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          builder: (ctx) => PhotoPickerSheet(alreadyUsedAssetIds: usedIds),
+                        );
+                        
+                        if (asset != null) {
+                          final file = await asset.file;
+                          if (file != null) {
+                            final latlng = await asset.latlngAsync();
+                            final location = latlng != null && latlng.latitude != 0 
+                                ? LatLng84(latlng.latitude, latlng.longitude) 
+                                : currentAlbum.centerLocation; // Fallback
+
+                            final newPhoto = MemoryPhoto(
+                              id: asset.id,
+                              imageUrl: file.path, // Use local file path
+                              location: location,
+                              timestamp: asset.createDateTime,
+                              description: '刚刚上传的照片',
+                            );
+                            MemoriesActions.addPhotoToAlbum(currentAlbum.id, newPhoto);
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -117,7 +171,7 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.album.title,
+                        currentAlbum.title,
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w900,
@@ -130,7 +184,7 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                           Icon(Icons.location_on, size: 16, color: isDark ? Colors.white54 : Colors.grey.shade600),
                           const SizedBox(width: 4),
                           Text(
-                            strings.footprintsCount(widget.album.photos.length),
+                            strings.footprintsCount(currentAlbum.photos.length),
                             style: TextStyle(
                               fontSize: 15,
                               color: isDark ? Colors.white54 : Colors.grey.shade600,
@@ -154,9 +208,9 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                     mainAxisSpacing: 12,
                     childAspectRatio: 1.0, // 正方形照片
                   ),
-                  itemCount: widget.album.photos.length,
+                  itemCount: currentAlbum.photos.length,
                   itemBuilder: (context, index) {
-                    final photo = widget.album.photos[index];
+                    final photo = currentAlbum.photos[index];
                     return GestureDetector(
                       onTap: () {
                         _mapController?.moveCamera(photo.location, zoom: 16.0);
@@ -176,11 +230,17 @@ class _MemoryDetailPageState extends ConsumerState<MemoryDetailPage> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.network(
-                              photo.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
-                            ),
+                            photo.imageUrl.startsWith('http')
+                                ? Image.network(
+                                    photo.imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
+                                  )
+                                : Image.file(
+                                    File(photo.imageUrl),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
+                                  ),
                             // 点击涟漪效果层
                             Material(
                               color: Colors.transparent,

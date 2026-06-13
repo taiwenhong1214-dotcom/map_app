@@ -58,11 +58,11 @@ class _MapSearchBarState extends ConsumerState<MapSearchBar> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           )
         ],
       ),
@@ -73,7 +73,7 @@ class _MapSearchBarState extends ConsumerState<MapSearchBar> {
         decoration: InputDecoration(
           hintText: strings.searchPlaceholder,
           hintStyle: const TextStyle(fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: Colors.blueAccent),
+          prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
           suffixIcon: _isLoading
               ? const Padding(
                   padding: EdgeInsets.all(14.0),

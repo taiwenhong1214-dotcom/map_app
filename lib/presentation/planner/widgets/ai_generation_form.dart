@@ -54,9 +54,9 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 16,
+                offset: const Offset(0, -4),
               ),
             ],
           ),
@@ -74,7 +74,9 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             decoration: InputDecoration(
               labelText: strings.destinationLabel,
               prefixIcon: const Icon(Icons.flight_takeoff),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
             ),
           ),
           const SizedBox(height: 16),
@@ -84,7 +86,9 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             decoration: InputDecoration(
               labelText: strings.daysLabel,
               prefixIcon: const Icon(Icons.calendar_month),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
             ),
           ),
           const SizedBox(height: 16),
@@ -95,18 +99,20 @@ class _AiGenerationFormState extends ConsumerState<AiGenerationForm> {
             decoration: InputDecoration(
               labelText: strings.prefsLabel,
               alignLabelWithHint: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
             ),
           ),
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: () => _submit(strings),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black87,
+              backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(24),
               ),
               elevation: 0,
             ),

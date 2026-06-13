@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import '../../../core/i18n/app_strings.dart';
 
 class PhotoPickerSheet extends StatefulWidget {
   final List<String> alreadyUsedAssetIds;
@@ -28,7 +29,8 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
     final PermissionState ps = await PhotoManager.requestPermissionExtend();
     if (!ps.hasAccess) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要相册权限才能添加照片')));
+        final strings = context.strings(Localizations.localeOf(context));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.photoPermissionRequired)));
         Navigator.pop(context);
       }
       return;
@@ -83,7 +85,7 @@ class _PhotoPickerSheetState extends State<PhotoPickerSheet> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: _albums.isEmpty
-                ? const Text('选择照片补齐足迹', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))
+                ? Text(context.strings(Localizations.localeOf(context)).selectPhotoToComplete, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))
                 : DropdownButton<AssetPathEntity>(
                     value: _selectedAlbum,
                     isExpanded: true,

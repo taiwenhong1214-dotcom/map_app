@@ -54,4 +54,31 @@ class SocialPost {
       isLikedByMe: isLikedByMe ?? this.isLikedByMe,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'authorName': authorName,
+        'authorAvatarUrl': authorAvatarUrl,
+        'title': title,
+        'description': description,
+        'coverImageUrl': coverImageUrl,
+        'likesCount': likesCount,
+        'copyCount': copyCount,
+        'itinerary': itinerary.toJson(),
+        'postedAt': postedAt.toIso8601String(),
+        // isLikedByMe is local state, usually don't persist to global feed
+      };
+
+  factory SocialPost.fromJson(Map<String, dynamic> json) => SocialPost(
+        id: json['id'] as String,
+        authorName: json['authorName'] as String,
+        authorAvatarUrl: json['authorAvatarUrl'] as String,
+        title: json['title'] as String,
+        description: json['description'] as String,
+        coverImageUrl: json['coverImageUrl'] as String,
+        likesCount: json['likesCount'] as int? ?? 0,
+        copyCount: json['copyCount'] as int? ?? 0,
+        itinerary: Itinerary.fromJson(json['itinerary'] as Map<String, dynamic>),
+        postedAt: DateTime.parse(json['postedAt'] as String),
+      );
 }

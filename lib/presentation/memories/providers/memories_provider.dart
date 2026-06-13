@@ -1,53 +1,90 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../domain/entities/memory.dart';
-import '../../../core/coordinate/coordinate_converter.dart';
+import '../../../data/services/image_upload_service.dart';
 
-class MemoriesNotifier extends Notifier<List<MemoryAlbum>> {
-  @override
-  List<MemoryAlbum> build() {
-    // Return mock data for initial MVP state
-    return [
-      MemoryAlbum(
-        id: 'album_1',
-        title: 'Kyoto Autumn Trip',
-        coverImageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=600&auto=format&fit=crop',
-        centerLocation: const LatLng84(35.0116, 135.7681), // Kyoto
-        photos: [
-          MemoryPhoto(
-            id: 'p1',
-            imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=400&auto=format&fit=crop',
-            location: const LatLng84(34.9948, 135.7850), // Kiyomizu-dera
-            timestamp: DateTime.now().subtract(const Duration(days: 10)),
-            description: 'Beautiful autumn leaves.',
-          ),
-          MemoryPhoto(
-            id: 'p2',
-            imageUrl: 'https://images.unsplash.com/photo-1624253321171-1be53e12f5f4?q=80&w=400&auto=format&fit=crop',
-            location: const LatLng84(35.0111, 135.6770), // Arashiyama
-            timestamp: DateTime.now().subtract(const Duration(days: 9)),
-            description: 'Bamboo forest walk.',
-          ),
-        ],
-      ),
-      MemoryAlbum(
-        id: 'album_2',
-        title: 'Shanghai City Walk',
-        coverImageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=600&auto=format&fit=crop',
-        centerLocation: const LatLng84(31.2304, 121.4737), // Shanghai
-        photos: [
-          MemoryPhoto(
-            id: 'p3',
-            imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?q=80&w=400&auto=format&fit=crop',
-            location: const LatLng84(31.2397, 121.4998), // The Bund
-            timestamp: DateTime.now().subtract(const Duration(days: 30)),
-            description: 'Night view of the Bund.',
-          ),
-        ],
-      ),
-    ];
+final memoriesProvider = StreamProvider<List<MemoryAlbum>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('memories')
+      .snapshots()
+      .map((snapshot) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id; // Override id with document ID
+      return MemoryAlbum.fromJson(data);
+    }).toList();
+  });
+});
+
+class MemoriesActions {
+  static Future<void> createAlbum(MemoryAlbum album) async {
+    // If the coverImageUrl is a local path, upload it
+    String finalCoverUrl = album.coverImageUrl;
+    if (!finalCoverUrl.startsWith('http')) {
+      final uploadedUrl = await ImageUploadService.uploadImage(File(finalCoverUrl));
+      if (uploadedUrl != null) {
+        finalCoverUrl = uploadedUrl;
+      }
+    }
+
+    // Also upload the first photo if it exists
+    final updatedPhotos = <MemoryPhoto>[];
+    for (var photo in album.photos) {
+      if (!photo.imageUrl.startsWith('http')) {
+        final uploadedPhotoUrl = await ImageUploadService.uploadImage(File(photo.imageUrl));
+        if (uploadedPhotoUrl != null) {
+          updatedPhotos.add(MemoryPhoto(
+            id: photo.id,
+            imageUrl: uploadedPhotoUrl,
+            location: photo.location,
+            timestamp: photo.timestamp,
+            description: photo.description,
+          ));
+        } else {
+          updatedPhotos.add(photo);
+        }
+      } else {
+        updatedPhotos.add(photo);
+      }
+    }
+
+    final albumToSave = MemoryAlbum(
+      id: album.id,
+      title: album.title,
+      coverImageUrl: finalCoverUrl,
+      centerLocation: album.centerLocation,
+      photos: updatedPhotos,
+    );
+
+    final json = albumToSave.toJson();
+    json.remove('id'); // Firestore will auto-generate
+
+    await FirebaseFirestore.instance.collection('memories').add(json);
+  }
+
+  static Future<void> addPhotoToAlbum(String albumId, MemoryPhoto photo) async {
+    String finalImageUrl = photo.imageUrl;
+    if (!finalImageUrl.startsWith('http')) {
+      final uploadedUrl = await ImageUploadService.uploadImage(File(finalImageUrl));
+      if (uploadedUrl != null) {
+        finalImageUrl = uploadedUrl;
+      }
+    }
+
+    final photoToSave = MemoryPhoto(
+      id: photo.id,
+      imageUrl: finalImageUrl,
+      location: photo.location,
+      timestamp: photo.timestamp,
+      description: photo.description,
+    );
+
+    final docRef = FirebaseFirestore.instance.collection('memories').doc(albumId);
+    
+    // Add to 'photos' array using FieldValue.arrayUnion
+    await docRef.update({
+      'photos': FieldValue.arrayUnion([photoToSave.toJson()]),
+    });
   }
 }
-
-final memoriesProvider = NotifierProvider<MemoriesNotifier, List<MemoryAlbum>>(() {
-  return MemoriesNotifier();
-});

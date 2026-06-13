@@ -53,8 +53,8 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
     
     // 给 Dio 本身加上超时，双重保险
     final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(milliseconds: 2000),
-      receiveTimeout: const Duration(milliseconds: 2000),
+      connectTimeout: const Duration(milliseconds: 5000),
+      receiveTimeout: const Duration(milliseconds: 5000),
     ));
 
     final res = await dio.get(url);
@@ -70,8 +70,11 @@ final osrmRouteProvider = FutureProvider.family<Map<String, dynamic>, String>((r
       }).toList();
 
       return {'points': polylinePoints, 'legs': legInfos};
+    } else {
+      print('OSRM API returned non-200 or empty routes: ${res.data}');
     }
-  } catch (_) {
+  } catch (e) {
+    print('OSRM API Error: $e');
     // 静默拦截所有网络错误和超时，直接进入本地算法
   }
   

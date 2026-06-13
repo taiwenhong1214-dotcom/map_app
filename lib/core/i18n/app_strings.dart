@@ -19,6 +19,20 @@ class AppStrings {
   String get memoriesLit => isEn ? 'Successfully lit up {0} memories!' : '成功点亮 {0} 张回忆！';
   String get generatingPoster => isEn ? 'Generating poster...' : '正在生成专属长图...';
   String get posterFailed => isEn ? 'Failed to generate poster' : '长图生成失败，请重试';
+  String get save => isEn ? 'Save' : '保存';
+  String get savedToLocal => isEn ? '💾 Saved to my trips!' : '💾 已保存到我的手账！';
+  String get publishCommunity => isEn ? 'Publish' : '发布社区';
+
+  // Publish Sheet
+  String publishSheetTitle(String dest) => isEn ? 'My awesome trip to $dest' : '$dest 的奇妙之旅';
+  String get enterTitlePrompt => isEn ? 'Please enter a title!' : '请输入标题！';
+  String get defaultPostDesc => isEn ? 'Check out this amazing itinerary I generated using AI Planner!' : '快来看看我用 AI Planner 生成的魔法行程！';
+  String get publishSuccess => isEn ? 'Published successfully! Check it out in Discovery.' : '发布成功！去"社区发现"看看吧！';
+  String get publishSheetHeader => isEn ? 'Share to Community' : '分享至社区';
+  String get titleHint => isEn ? 'A catchy title' : '取个响亮的标题';
+  String get descHint => isEn ? 'What was the highlight of this trip...' : '说说这次行程的亮点吧...';
+  String get publishBtn => isEn ? 'Publish Now' : '立即发布';
+  String get setCoverPhoto => isEn ? 'Set Cover Photo (Optional)' : '设置封面照片 (可选)';
 
   // AI Generation Form
   String get formTitle => isEn ? 'Where to next?' : '你的下一站，想去哪里？';
@@ -58,6 +72,10 @@ class AppStrings {
   String photosCount(int count) => isEn ? '$count Photos' : '$count 照片';
   String footprintsCount(int count) => isEn ? '$count Footprints' : '$count 个足迹点';
   String get viewedOnMap => isEn ? 'Viewed photo on map!' : '在地图上查看了照片!';
+  String get addPhoto => isEn ? 'Add Photo' : '添加照片';
+  String daysCount(int count) => isEn ? '$count Days' : '$count 天';
+  String get photoPermissionRequired => isEn ? 'Photo access permission is required to add photos' : '需要相册权限才能添加照片';
+  String get selectPhotoToComplete => isEn ? 'Select photo to complete footprint' : '选择照片补齐足迹';
 
   // Default Form Inputs
   String get defaultDest => isEn ? 'Tokyo' : '东京';

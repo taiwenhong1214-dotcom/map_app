@@ -14,6 +14,23 @@ class MemoryPhoto {
     required this.timestamp,
     this.description,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'imageUrl': imageUrl,
+        'lat': location.latitude,
+        'lng': location.longitude,
+        'timestamp': timestamp.toIso8601String(),
+        'description': description,
+      };
+
+  factory MemoryPhoto.fromJson(Map<String, dynamic> json) => MemoryPhoto(
+        id: json['id'] as String,
+        imageUrl: json['imageUrl'] as String,
+        location: LatLng84(json['lat'] as double, json['lng'] as double),
+        timestamp: DateTime.parse(json['timestamp'] as String),
+        description: json['description'] as String?,
+      );
 }
 
 class MemoryAlbum {
@@ -30,4 +47,24 @@ class MemoryAlbum {
     required this.photos,
     required this.centerLocation,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'coverImageUrl': coverImageUrl,
+        'lat': centerLocation.latitude,
+        'lng': centerLocation.longitude,
+        'photos': photos.map((p) => p.toJson()).toList(),
+      };
+
+  factory MemoryAlbum.fromJson(Map<String, dynamic> json) => MemoryAlbum(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        coverImageUrl: json['coverImageUrl'] as String,
+        centerLocation: LatLng84(json['lat'] as double, json['lng'] as double),
+        photos: (json['photos'] as List<dynamic>?)
+                ?.map((e) => MemoryPhoto.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+      );
 }

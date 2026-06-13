@@ -10,6 +10,7 @@ import '../../../data/repositories_impl/ai_planner_repository_impl.dart';
 import '../../../data/repositories_impl/memory_repository_impl.dart';
 import '../../../domain/repositories/i_ai_planner_repository.dart';
 import '../../../domain/entities/itinerary.dart';
+import '../../../data/datasources/itinerary_local_datasource.dart';
 import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/app_strings.dart';
 
@@ -41,8 +42,36 @@ final memoryRepositoryProvider = Provider<MemoryRepositoryImpl>((ref) {
   return MemoryRepositoryImpl();
 });
 
+final itineraryLocalDataSourceProvider = Provider<ItineraryLocalDataSource>((ref) {
+  final prefs = ref.watch(sharedPreferencesProvider);
+  return ItineraryLocalDataSource(prefs);
+});
+
 // --- 状态管理 ---
 
+// 1. 历史保存的行程
+final savedTripsNotifierProvider = NotifierProvider<SavedTripsNotifier, List<Itinerary>>(() {
+  return SavedTripsNotifier();
+});
+
+class SavedTripsNotifier extends Notifier<List<Itinerary>> {
+  @override
+  List<Itinerary> build() {
+    return ref.watch(itineraryLocalDataSourceProvider).getAllItineraries();
+  }
+
+  Future<void> saveTrip(Itinerary trip) async {
+    await ref.read(itineraryLocalDataSourceProvider).saveItinerary(trip);
+    state = ref.read(itineraryLocalDataSourceProvider).getAllItineraries();
+  }
+
+  Future<void> deleteTrip(String localId) async {
+    await ref.read(itineraryLocalDataSourceProvider).deleteItinerary(localId);
+    state = ref.read(itineraryLocalDataSourceProvider).getAllItineraries();
+  }
+}
+
+// 2. 照片足迹
 final photoFootprintsProvider = NotifierProvider<PhotoFootprintsNotifier, List<PhotoFootprint>>(() {
   return PhotoFootprintsNotifier();
 });
@@ -62,10 +91,21 @@ class PhotoFootprintsNotifier extends Notifier<List<PhotoFootprint>> {
     final List<PhotoFootprint> filtered = state.where((f) => f.poi.id != newFootprint.poi.id).toList();
     filtered.add(newFootprint);
     state = filtered;
+    _syncPhotosToLocal(newFootprint.poi.id, [newFootprint.asset.id]);
   }
 
   void removeFootprint(String poiId) {
     state = state.where((f) => f.poi.id != poiId).toList();
+    _syncPhotosToLocal(poiId, []);
+  }
+
+  void _syncPhotosToLocal(String poiId, List<String> newPhotoIds) {
+    // 如果当前行程是本地保存的，则自动更新照片信息到本地
+    final currentTrip = ref.read(currentItineraryNotifierProvider).value;
+    if (currentTrip != null && currentTrip.localId != null) {
+      ref.read(itineraryLocalDataSourceProvider).updatePoiPhotos(currentTrip.localId!, poiId, newPhotoIds);
+      ref.read(savedTripsNotifierProvider.notifier).build(); // 刷新列表
+    }
   }
 }
 
@@ -143,9 +183,28 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
     prefs.remove('cached_itinerary');
   }
 
-  /// 🌟 新增：直接设置行程（用于从社区一键复刻）
+  /// 🌟 新增：直接设置行程（用于从社区一键复刻，或者从“我的行程”加载）
   void setItinerary(Itinerary itinerary) {
     state = AsyncValue.data(itinerary);
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setString('cached_itinerary', jsonEncode(itinerary.toJson()));
+  }
+
+  /// 🌟 新增：将当前行程存入本地数据库
+  Future<void> saveToLocal() async {
+    final current = state.value;
+    if (current == null) return;
+    
+    // 生成 localId 并保存
+    final localId = current.localId ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final updated = current.copyWith(localId: localId);
+    
+    await ref.read(savedTripsNotifierProvider.notifier).saveTrip(updated);
+    
+    // 更新当前状态为已保存状态
+    state = AsyncValue.data(updated);
+    final prefs = ref.read(sharedPreferencesProvider);
+    prefs.setString('cached_itinerary', jsonEncode(updated.toJson()));
   }
 
   /// 对话式微调当前行程 (Copilot)
