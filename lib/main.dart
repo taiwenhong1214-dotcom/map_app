@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '圆周旅迹 (Circular Travel)',
+      title: 'mapapp',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system, // Task 3.3: 跟随系统动态切换
       theme: ThemeData(
