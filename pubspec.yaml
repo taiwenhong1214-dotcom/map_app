@@ -49,6 +49,8 @@ dependencies:
   firebase_core: ^4.10.0
   cloud_firestore: ^6.5.0
   http: ^1.6.0
+  flutter_foreground_task: ^9.2.2
+  home_widget: ^0.9.3
 
 dev_dependencies:
   flutter_test:

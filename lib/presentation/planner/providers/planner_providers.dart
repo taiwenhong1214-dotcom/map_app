@@ -59,6 +59,28 @@ final itineraryLocalDataSourceProvider = Provider<ItineraryLocalDataSource>((ref
 
 // --- 状态管理 ---
 
+// Search Bar Focus State (Deep Link)
+class SearchFocusNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void triggerFocus() => state = true;
+  void resetFocus() => state = false;
+}
+final searchFocusProvider = NotifierProvider<SearchFocusNotifier, bool>(() {
+  return SearchFocusNotifier();
+});
+
+// Join Room Trigger State (Deep Link)
+class JoinRoomTriggerNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void trigger() => state = true;
+  void reset() => state = false;
+}
+final joinRoomTriggerProvider = NotifierProvider<JoinRoomTriggerNotifier, bool>(() {
+  return JoinRoomTriggerNotifier();
+});
+
 // 1. 历史保存的行程
 final savedTripsNotifierProvider = NotifierProvider<SavedTripsNotifier, List<Itinerary>>(() {
   return SavedTripsNotifier();
@@ -135,17 +157,8 @@ class CurrentItineraryNotifier extends AsyncNotifier<Itinerary?> {
 
   @override
   FutureOr<Itinerary?> build() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final cached = prefs.getString('cached_itinerary');
-    if (cached != null) {
-      try {
-        final Map<String, dynamic> json = jsonDecode(cached);
-        return Itinerary.fromJson(json);
-      } catch (e) {
-        // ignore parsing errors
-      }
-    }
-    return null; // 初始状态为空
+    // 🌟 杀后台重新打开时，不读取缓存，直接返回首页（输入表单）
+    return null;
   }
 
   /// 一键生成全新行程

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_search_hint">🔍  Search any place…</string>
+    <string name="widget_tracking_default">Live Tracking Active</string>
+    <string name="widget_btn_join_room">Join Room</string>
+    <string name="widget_btn_community">Explore</string>
+    <string name="widget_btn_album">Album</string>
+</resources>

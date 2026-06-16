@@ -94,7 +94,21 @@ JSON 格式要求：
     const systemPrompt = '''
 你是一个高级旅行AI助手。用户会提供【当前行程】和【修改意见】。
 请你根据意见修改行程，并直接输出完整的最新标准的JSON对象，不要有任何Markdown包裹。
-JSON 格式严格要求与之前保持一致。
+必须包含每日的 POI（经纬度要求严格准确，WGS-84标准）。
+JSON 格式要求如下（严格按照此结构）：
+{
+  "title": "行程标题",
+  "destination": "目的地",
+  "days": [
+    {
+      "dayIndex": 1,
+      "date": "2026-06-12",
+      "pois": [
+        {"id": "p1", "name": "景点名称", "lat": 39.9, "lng": 116.4, "description": "描述", "category": "attraction", "emoji": "🏛️"}
+      ]
+    }
+  ]
+}
 ''';
 
     final prompt = """
@@ -119,9 +133,12 @@ $userPrompt
       final updatedDays = currentItinerary.days.map((day) {
         if (day.dayIndex == 1 && day.pois.isNotEmpty) {
           final firstPoi = day.pois.first;
+          // 移除旧的标记，防止叠加出现 "✨(已调整) ✨(已调整)"
+          final cleanName = firstPoi.name.replaceAll(RegExp(r'\s*✨\(已调整\)'), '');
+          
           final updatedPoi = POI(
             id: firstPoi.id,
-            name: '${firstPoi.name} ✨(已调整)',
+            name: '$cleanName ✨(已调整)',
             location: firstPoi.location,
             description: '$userPrompt -> 这是本地兜底触发的模拟修改结果。',
             category: firstPoi.category,

@@ -5,6 +5,7 @@ import '../../../data/datasources/geocoding_datasource.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/i18n/locale_provider.dart';
 import 'package:dio/dio.dart';
+import '../providers/planner_providers.dart';
 
 class MapSearchBar extends ConsumerStatefulWidget {
   final ValueChanged<LatLng84> onLocationFound;
@@ -17,6 +18,7 @@ class MapSearchBar extends ConsumerStatefulWidget {
 
 class _MapSearchBarState extends ConsumerState<MapSearchBar> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
   late final GeocodingDataSource _geocodingDataSource;
 
@@ -53,6 +55,15 @@ class _MapSearchBarState extends ConsumerState<MapSearchBar> {
     final strings = context.strings(locale);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Listen for deep link focus requests
+    ref.listen<bool>(searchFocusProvider, (prev, next) {
+      if (next) {
+        _focusNode.requestFocus();
+        // Reset state so it can be triggered again later
+        Future.microtask(() => ref.read(searchFocusProvider.notifier).resetFocus());
+      }
+    });
+
     return Container(
       height: 50,
       decoration: BoxDecoration(
@@ -68,6 +79,7 @@ class _MapSearchBarState extends ConsumerState<MapSearchBar> {
       ),
       child: TextField(
         controller: _controller,
+        focusNode: _focusNode,
         textInputAction: TextInputAction.search,
         onSubmitted: (_) => _search(strings),
         decoration: InputDecoration(
@@ -93,6 +105,7 @@ class _MapSearchBarState extends ConsumerState<MapSearchBar> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 }

@@ -24,6 +24,7 @@ import '../../../data/repositories_impl/memory_repository_impl.dart';
 import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../lbs_tracking/live_tracking_providers.dart';
+import '../../../domain/entities/live_location.dart';
 
 class PlannerPage extends ConsumerStatefulWidget {
   const PlannerPage({super.key});
@@ -97,6 +98,27 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
       if (changed) {
         _peerAnimController.forward(from: 0.0);
       }
+      
+      // 🌟 监听访客的意外断开（如房主杀后台触发的超时）
+      if (previous != null && previous.isConnected && !next.isConnected && !previous.isHost) {
+        // 只有当是因为超时等原因被动断开（此时 itinerary 还没被主动 clear）时才提示
+        if (ref.read(currentItineraryNotifierProvider).value != null) {
+          ref.read(currentItineraryNotifierProvider.notifier).clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.hostOfflineDisbanded)),
+          );
+        }
+      }
+    });
+
+    // 监听小组件加入房间事件 (Deep Link)
+    ref.listen<bool>(joinRoomTriggerProvider, (prev, next) {
+      if (next) {
+        Future.microtask(() {
+          _showJoinRoomSheet(context);
+          ref.read(joinRoomTriggerProvider.notifier).reset();
+        });
+      }
     });
 
     // 监听房间行程流，同步给客人 (Guest)
@@ -109,7 +131,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
             ref.read(liveTrackingProvider.notifier).disconnect();
             ref.read(currentItineraryNotifierProvider.notifier).clear();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('房主已结束行程并解散房间')),
+              SnackBar(content: Text(strings.hostEndedTripDisbanded)),
             );
           } else {
             // 同步房主的新行程
@@ -265,7 +287,9 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
                 ],
 
                 // 🌟 新增：刷新按钮 (用同样的参数让 AI 重新生成一份行程)
-                if (itineraryState.value != null) ...[
+                // 如果是访客身份且正在连接防走散房间，则隐藏刷新按钮（因为访客不能自己刷新行程）
+                if (itineraryState.value != null && 
+                    (!ref.watch(liveTrackingProvider).isConnected || ref.watch(liveTrackingProvider).isHost)) ...[
                   FloatingActionButton.small(
                     heroTag: 'btn_refresh',
                     backgroundColor: Theme.of(context).cardColor,
@@ -383,46 +407,104 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
             ),
           ),
 
-          // 🌟 房间在线人数徽章
+          // 🌟 房间在线人数徽章 + 飞向好友按钮
           if (ref.watch(liveTrackingProvider).isConnected)
             Positioned(
               top: MediaQuery.of(context).padding.top + 80,
               left: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          strings.onlineCount(ref.watch(liveTrackingProvider).peers.length + 1),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 🌟 一键飞向好友/房主坐标按钮
+                  if (ref.watch(liveTrackingProvider).peers.isNotEmpty)
+                    Material(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(20),
+                      elevation: 4,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          final liveState = ref.read(liveTrackingProvider);
+                          if (liveState.peers.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(strings.noOnlinePeers)),
+                            );
+                            return;
+                          }
+                          if (liveState.isHost && liveState.peers.length > 1) {
+                            // 房主有多个好友时，弹出选择列表
+                            _showPeerPickerSheet(context, liveState.peers);
+                          } else {
+                            // 访客 -> 飞向第一个 peer（通常是房主）
+                            // 房主只有一个好友 -> 直接飞过去
+                            final target = liveState.peers.first;
+                            _mapController?.moveCamera(target.position, zoom: 16.0);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('📍 ${target.userName}')),
+                            );
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.flight, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                ref.watch(liveTrackingProvider).isHost
+                                    ? strings.flyToFriend
+                                    : strings.flyToHost,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '在线: ${ref.watch(liveTrackingProvider).peers.length + 1}', // 包含自己
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
 
@@ -626,6 +708,14 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
       floatingActionButton: itineraryState.value != null
           ? AiCopilotFab(
               onTap: () {
+                final liveState = ref.read(liveTrackingProvider);
+                if (liveState.isConnected && !liveState.isHost) {
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(strings.hostOnlyModify)),
+                  );
+                  return;
+                }
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -1358,12 +1448,12 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
                     onPressed: () {
                       HapticFeedback.mediumImpact();
                       Navigator.pop(ctx);
-                      final randomId = 'user_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(1000)}';
+                      final hostUserId = roomId; // 🌟 核心修复：房主的 userId 固定为 roomId，以便访客能精准找到房主
                       final randomName = 'Traveler ${Random().nextInt(100)}';
                       final currentItinerary = ref.read(currentItineraryNotifierProvider).value;
                       ref
                           .read(liveTrackingProvider.notifier)
-                          .connect(roomId, randomId, randomName, currentItinerary?.toJson());
+                          .connect(roomId, hostUserId, randomName, currentItinerary?.toJson());
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('${strings.joinedRoomTitle}$inviteCode')),
                       );
@@ -1488,7 +1578,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
                         ),
                         onPressed: isLoading ? null : () async {
                           if (codeController.text.length < 6) {
-                            setState(() { errorMessage = '⚠️ 请输入完整的 6 位数房间口令'; });
+                            setState(() { errorMessage = strings.roomCodeIncomplete; });
                             return;
                           }
                           HapticFeedback.mediumImpact();
@@ -1514,7 +1604,7 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
                             if (context.mounted) {
                               setState(() { 
                                 isLoading = false;
-                                errorMessage = '❌ 房间不存在或已解散，请重新输入'; 
+                                errorMessage = strings.roomNotFound; 
                               });
                             }
                             return; // 保持面板打开
@@ -1548,6 +1638,57 @@ class _PlannerPageState extends ConsumerState<PlannerPage>
       },
     );
   }
+
+  /// 房主有多个好友时，弹出选择列表让房主选择飞向谁
+  void _showPeerPickerSheet(BuildContext context, List<LiveLocation> peers) {
+    final strings = AppStrings(ref.read(localeProvider));
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              Text(strings.flyToFriend, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ...peers.map((peer) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.green.shade100,
+                  child: Text(
+                    peer.userName.isNotEmpty ? peer.userName[0].toUpperCase() : '?',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                  ),
+                ),
+                title: Text(peer.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(
+                  'Lat: ${peer.position.latitude.toStringAsFixed(4)}, Lng: ${peer.position.longitude.toStringAsFixed(4)}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                ),
+                trailing: const Icon(Icons.flight, color: Colors.green),
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.pop(ctx);
+                  _mapController?.moveCamera(peer.position, zoom: 16.0);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('📍 ${peer.userName}')),
+                  );
+                },
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // 移除错误的 extension，使用 AsyncValue 原生的 .value 即可
+

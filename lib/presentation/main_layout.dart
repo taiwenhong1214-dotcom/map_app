@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 import 'planner/pages/planner_page.dart';
+import 'planner/providers/planner_providers.dart';
 import 'memories/pages/memories_page.dart';
 import 'social_feed/pages/social_feed_page.dart';
 import '../core/i18n/app_strings.dart';
@@ -16,6 +18,31 @@ class MainLayout extends ConsumerStatefulWidget {
 
 class _MainLayoutState extends ConsumerState<MainLayout> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    HomeWidget.widgetClicked.listen(_handleWidgetUri);
+    HomeWidget.initiallyLaunchedFromHomeWidget().then(_handleWidgetUri);
+  }
+
+  void _handleWidgetUri(Uri? uri) {
+    if (uri != null && uri.scheme == 'mapapp') {
+      setState(() {
+        if (uri.host == 'search') {
+          _currentIndex = 0;
+          ref.read(searchFocusProvider.notifier).triggerFocus();
+        } else if (uri.host == 'join_room') {
+          _currentIndex = 0;
+          ref.read(joinRoomTriggerProvider.notifier).trigger();
+        } else if (uri.host == 'community') {
+          _currentIndex = 1;
+        } else if (uri.host == 'album') {
+          _currentIndex = 2;
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

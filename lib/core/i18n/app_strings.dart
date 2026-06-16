@@ -122,6 +122,21 @@ class AppStrings {
   String get generateFailed => isEn ? 'Generation failed: ' : '生成失败: ';
   String get removePhoto => isEn ? 'Remove Photo' : '移除照片';
 
+  // Fly-to-Peer Feature
+  String get flyToHost => isEn ? 'Fly to Host' : '飞向房主';
+  String get flyToFriend => isEn ? 'Fly to Friend' : '飞向好友';
+  String get noOnlinePeers => isEn ? 'No friends online yet' : '暂无在线好友';
+  String onlineCount(int count) => isEn ? 'Online: $count' : '在线: $count';
+
+  // Join Room Validation
+  String get roomCodeIncomplete => isEn ? '⚠️ Please enter the full 6-digit code' : '⚠️ 请输入完整的 6 位数房间口令';
+  String get roomNotFound => isEn ? '❌ Room not found or disbanded' : '❌ 房间不存在或已解散，请重新输入';
+  String get hostOfflineDisbanded => isEn ? 'Host went offline, room disbanded automatically' : '房主已离线，房间自动解散';
+  String get hostEndedTripDisbanded => isEn ? 'Host ended the trip and disbanded the room' : '房主已结束行程并解散房间';
+
+  // Widget Tracking Message (localized for foreground service)
+  String widgetTrackingMsg(String lat) => isEn ? 'Tracking... Lat: $lat' : '防走散中... Lat: $lat';
+
   // Default Form Inputs
   String get defaultDest => isEn ? 'Tokyo' : '东京';
   String get defaultDays => '3';
@@ -145,6 +160,7 @@ class AppStrings {
   String get copilotTitle => isEn ? '✨ How would you like to adjust the itinerary?' : '✨ 想要如何调整行程？';
   String get copilotSubtitle => isEn ? 'Example: "Change day 1 afternoon to a cafe" or "Remove some attractions"' : '例如："把第一天下午改成去喝咖啡" 或 "删掉几个景点"';
   String get copilotHint => isEn ? 'Enter your thoughts...' : '输入你的想法...';
+  String get hostOnlyModify => isEn ? 'Only the room host can modify the itinerary' : '⚠️ 只有房主可以修改行程哦';
 
   // Lottie Loading
   String get aiLoading => isEn ? '✨ AI is checking the weather and planning your magical trip...' : '✨ AI 正在查询当地天气并光速规划你的专属行程...';

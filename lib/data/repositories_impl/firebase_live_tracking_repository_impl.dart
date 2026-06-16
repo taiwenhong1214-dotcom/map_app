@@ -31,6 +31,8 @@ class FirebaseLiveTrackingRepositoryImpl implements ILiveTrackingRepository {
 
   @override
   Future<void> connectToRoom(String roomId, String userId) async {
+    if (_currentRoomId == roomId && _myUserId == userId) return;
+    
     _currentRoomId = roomId;
     _myUserId = userId;
 
@@ -101,13 +103,20 @@ class FirebaseLiveTrackingRepositoryImpl implements ILiveTrackingRepository {
     if (_currentRoomId == null || _myUserId == null) return;
 
     try {
-      await _firestore.collection('live_rooms').doc(_currentRoomId).set({
-        'peers': {
-          _myUserId!: location.toJson(),
-        }
-      }, SetOptions(merge: true));
+      await _firestore.collection('live_rooms').doc(_currentRoomId).update({
+        'peers.${_myUserId!}': location.toJson(),
+      });
     } catch (e) {
-      print('Error broadcasting position: $e');
+      // If the document doesn't exist yet, create it.
+      try {
+        await _firestore.collection('live_rooms').doc(_currentRoomId).set({
+          'peers': {
+            _myUserId!: location.toJson(),
+          }
+        }, SetOptions(merge: true));
+      } catch (innerE) {
+        print('Error creating room doc for position: $innerE');
+      }
     }
   }
 

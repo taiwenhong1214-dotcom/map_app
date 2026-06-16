@@ -41,7 +41,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'mapapp',
+      title: 'LoopTrek',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system, // Task 3.3: 跟随系统动态切换
       theme: ThemeData(
