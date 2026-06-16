@@ -1,5 +1,5 @@
 // ⚠️ 核心修复 1：把 Vercel 的默认 10 秒超时延长到 60 秒（免费版支持的最大值）
-export const maxDuration = 60; 
+export const maxDuration = 60;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,13 +19,13 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         // 建议在这里固定使用 haiku，生成 JSON 最快且便宜
-        model: process.env.AI_MODEL || 'deepseek/deepseek-v4-flash', 
+        model: process.env.AI_MODEL || 'google/gemma-4-31b-it:free',
         messages: [
           { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks." },
           { role: 'user', content: userMessage }
         ],
         // ⚠️ 核心修复 2：为了防止内容太长被截断，稍微给大点 Token
-        max_tokens: 4000, 
+        max_tokens: 4000,
         response_format: { type: 'json_object' }
       })
     });
@@ -38,13 +38,13 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    
+
     // 获取 AI 返回的文本
     const content = data.choices[0].message.content;
-    
+
     // 核心修复：清理可能存在的 Markdown 代码块标记，确保 JSON 解析成功
     const cleanContent = content.replace(/```json\n?|```/g, '').trim();
-    
+
     try {
       res.status(200).json(JSON.parse(cleanContent));
     } catch (parseError) {
