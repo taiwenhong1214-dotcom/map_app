@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         // 建议在这里固定使用 haiku，生成 JSON 最快且便宜
-        model: process.env.AI_MODEL || 'openai/gpt-oss-20b:free',
+        model: process.env.AI_MODEL || 'deepseek/deepseek-v4-flash',
         messages: [
           { role: 'system', content: systemPrompt + " Respond ONLY with a valid JSON object. Do not include any explanations or markdown code blocks." },
           { role: 'user', content: userMessage }
